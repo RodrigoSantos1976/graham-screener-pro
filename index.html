@@ -1061,9 +1061,7 @@ function renderTabelaAcomp(){
 
 // ─── BUSCAR PREÇOS VIA BRAPI ───
 // ─── BUSCA DE PREÇOS — BRAPI.DEV ───
-const BRAPI_TOKEN='tPUUxcMTR9QUCiVYA96ibg';
-const BRAPI_URL='https://brapi.dev/api/quote';
-
+const PROXY_URL='https://black-mud-f442.rodrigosantosmps.workers.dev';
 async function buscarPrecos(){
   const btn=document.getElementById('btn-atualizar');
   if(!historico.length){alert('Salve uma carteira primeiro.');return;}
@@ -1085,35 +1083,27 @@ async function buscarPrecos(){
   const erros=[];
 
   try{
-    // ── 1. Um ticker por vez (limite do plano gratuito brapi) ──
+    // ── 1. Todos os tickers numa chamada (o proxy agrupa e cacheia) ──
     msgEl.textContent=`Buscando preços... 0/${tickers.length} ativos`;
-    for(let i=0;i<tickers.length;i++){
-      const ticker=tickers[i];
-      try{
-        const resp=await fetch(`${BRAPI_URL}/${ticker}?token=${BRAPI_TOKEN}`);
-        const json=await resp.json();
-        if(json.results&&json.results[0]&&json.results[0].regularMarketPrice){
-          precoAtual[ticker]={
-            preco:json.results[0].regularMarketPrice,
-            var:json.results[0].regularMarketChangePercent||0,
-            ts:now
-          };
+    try{
+      const resp=await fetch(`${PROXY_URL}/?tickers=${encodeURIComponent(tickers.join(','))}`);
+      const json=await resp.json();
+      (json.quotes||[]).forEach(q=>{
+        if(q.preco!=null){
+          precoAtual[q.ticker]={preco:q.preco,var:q.variacaoPct||0,ts:now};
           atualizados++;
-        } else {
-          erros.push(ticker);
         }
-      }catch(e){erros.push(ticker);}
-      msgEl.textContent=`Buscando preços... ${atualizados+erros.length}/${tickers.length} ativos`;
-      // Pausa de 200ms para não sobrecarregar a API
-      await new Promise(r=>setTimeout(r,200));
-    }
-
+      });
+      const recebidos=new Set((json.quotes||[]).map(q=>q.ticker));
+      tickers.forEach(t=>{if(!recebidos.has(t))erros.push(t);});
+    }catch(e){tickers.forEach(t=>erros.push(t));}
+    msgEl.textContent=`Buscando preços... ${atualizados}/${tickers.length} ativos`;
     // ── 2. IBOV ──
     try{
-      const respIbov=await fetch(`${BRAPI_URL}/%5EBVSP?token=${BRAPI_TOKEN}`);
+      const respIbov=await fetch(`${PROXY_URL}/?tickers=${encodeURIComponent('^BVSP')}`);
       const jsonIbov=await respIbov.json();
-      if(jsonIbov.results&&jsonIbov.results[0]){
-        ibovPontos=jsonIbov.results[0].regularMarketPrice;
+      if(jsonIbov.quotes&&jsonIbov.quotes[0]){
+        ibovPontos=jsonIbov.quotes[0].preco;
         const ibovBase=cart.ibovBase||ibovPontos;
         if(!cart.ibovBase){cart.ibovBase=ibovPontos;salvarLS();}
         const ibovVar=((ibovPontos-ibovBase)/ibovBase*100);
