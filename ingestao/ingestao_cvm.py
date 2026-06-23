@@ -11,19 +11,12 @@ Para cada companhia, calcula:
 Fonte (pública, gratuita):
     DFP (anual) → https://dados.cvm.gov.br/dados/CIA_ABERTA/DOC/DFP/DADOS/dfp_cia_aberta_AAAA.zip
 
-Notas importantes:
-  - Os CSVs vêm em Latin-1, separador ';'. Tratado aqui.
-  - VL_CONTA respeita ESCALA_MOEDA ('MILHAR' ⇒ ×1000). Tratado.
-  - A CVM identifica empresa por CD_CVM e CNPJ, NÃO por ticker. O de-para
-    ticker entra via MAPA_TICKER (alimentado pela B3/brapi).
-  - O preço (para a MoS) NÃO vem daqui — vem da brapi, no fluxo diário.
-    Este script produz só a parte estática (LPA, VPA, VI).
-  - Nomes de arquivo/coluna são DESCOBERTOS por padrão, não chutados.
-    Rode uma vez; se algo não casar, me mande o cabeçalho real para travarmos.
+O de-para ticker é cruzado por CNPJ (mapa_ticker.json, gerado pelo mapa_ticker.py).
 """
 
 import io
 import os
+import re
 import sys
 import json
 import math
@@ -35,16 +28,16 @@ import pandas as pd
 
 DFP_URL = "https://dados.cvm.gov.br/dados/CIA_ABERTA/DOC/DFP/DADOS/dfp_cia_aberta_{ano}.zip"
 
-# De-para CD_CVM → [tickers], gerado por mapa_ticker.py (mapa_ticker.json).
+# De-para CNPJ(14 dígitos) → [tickers], gerado por mapa_ticker.py (mapa_ticker.json).
 MAPA_TICKER_PATH = os.environ.get("MAPA_TICKER_PATH", "mapa_ticker.json")
 
 
 def carregar_mapa_ticker(caminho=MAPA_TICKER_PATH):
-    """Carrega o de-para CD_CVM → [tickers]. Arquivo ausente → dict vazio."""
+    """Carrega o de-para CNPJ(14 dígitos) → [tickers]. Arquivo ausente → dict vazio."""
     try:
         with open(caminho, encoding="utf-8") as fh:
             bruto = json.load(fh)
-        return {int(k): list(v) for k, v in bruto.items()}
+        return {re.sub(r"\D", "", str(k)): list(v) for k, v in bruto.items()}
     except (FileNotFoundError, ValueError):
         return {}
 
@@ -228,9 +221,10 @@ def processar_zip(conteudo: bytes) -> list:
         else:
             motivo = "nº de ações indisponível"
 
-        # Uma linha por ticker (ON, PN, Unit compartilham LPA/VPA da empresa;
-        # diferem só no preço/MoS, calculados depois). Sem ticker → uma linha nula.
-        tickers = MAPA_TICKER.get(cd_cvm) or [None]
+        # Cruza por CNPJ (14 dígitos). Uma linha por ticker (ON, PN, Unit
+        # compartilham LPA/VPA; diferem só no preço/MoS). Sem ticker → linha nula.
+        cnpj_chave = re.sub(r"\D", "", str(r.get("CNPJ_CIA") or ""))
+        tickers = MAPA_TICKER.get(cnpj_chave) or [None]
         for tk in tickers:
             registros.append({
                 "cd_cvm": cd_cvm,
