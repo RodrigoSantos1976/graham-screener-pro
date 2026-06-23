@@ -1,24 +1,16 @@
-# ============================================================================
-# .github/workflows/ingest.yml
-#
-# Roda a ingestão da CVM e publica data/fundamentos.json + data/mapa_ticker.json.
-# Cadência: semanal (fundamentos mudam por balanço). Também roda à mão.
-#
-# Não usa secrets: a CVM é pública. O token da brapi vive no Cloudflare Worker.
-# ============================================================================
 name: Ingestão CVM
 
 on:
   schedule:
-    - cron: "0 9 * * 1"        # toda segunda, 09:00 UTC
+    - cron: "0 9 * * 1"
   workflow_dispatch:
     inputs:
       ano:
-        description: "Ano do DFP (vazio = ano anterior ao atual)"
+        description: "Ano (vazio = ano anterior ao atual)"
         required: false
 
 permissions:
-  contents: write              # necessário para o commit dos JSONs
+  contents: write
 
 concurrency:
   group: ingest-cvm
@@ -36,7 +28,6 @@ jobs:
         with:
           python-version: "3.12"
 
-
       - name: Instalar dependências
         run: pip install pandas requests
 
@@ -46,31 +37,18 @@ jobs:
           if [ -z "$ANO" ]; then ANO=$(( $(date +%Y) - 1 )); fi
           echo "ANO=$ANO" >> "$GITHUB_ENV"
           echo "Usando dados do ano: $ANO"
-- name: Diagnostico FCA
-        run: |
-          python - <<'EOF'
-          import io, zipfile, requests, pandas as pd
-          url = "https://dados.cvm.gov.br/dados/CIA_ABERTA/DOC/FCA/DADOS/fca_cia_aberta_2025.zip"
-          zf = zipfile.ZipFile(io.BytesIO(requests.get(url, timeout=120).content))
-          alvo = [n for n in zf.namelist() if "valor_mobiliario" in n.lower()][0]
-          df = pd.read_csv(zf.open(alvo), sep=";", encoding="latin-1", dtype=str, nrows=2)
-          print("COLUNAS:", list(df.columns))
-          EOF
+
       - name: Gerar mapa de tickers (FCA)
         run: |
           python ingestao/mapa_ticker.py "$ANO"
           mkdir -p data
           cp -f mapa_ticker.json data/mapa_ticker.json
-          echo "--- mapa ---"
-          python -c "import json;d=json.load(open('mapa_ticker.json'));print(len(d),'empresas mapeadas')"
 
       - name: Rodar ingestão
         run: |
           python ingestao/ingestao_cvm.py "$ANO"
           mkdir -p data
           mv -f fundamentos.json data/fundamentos.json
-          echo "--- resumo ---"
-          python -c "import json;d=json.load(open('data/fundamentos.json'));print(d['total'],'empresas,',d['elegiveis'],'elegíveis')"
 
       - name: Commitar se houver mudança
         run: |
@@ -80,6 +58,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "Sem mudanças."
           else
-            git commit -m "chore: atualiza fundamentos.json + mapa_ticker.json (ano ${ANO})"
+            git commit -m "chore: atualiza dados (ano ${ANO})"
             git push
           fi
