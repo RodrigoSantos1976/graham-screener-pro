@@ -55,11 +55,10 @@ def gerar_mapa(conteudo: bytes) -> dict:
     col_adm = _achar_coluna(df, "ENTIDADE", "ADMINISTRADORA")
     col_data = _achar_coluna(df, "DATA", "REFER") or _achar_coluna(df, "REFER")
 
-    if not col_cvm or not col_tk:
-        print("!!! COLUNA NAO ENCONTRADA. Colunas reais do arquivo:", file=sys.stderr)
-        for c in df.columns:
-            print("   ", repr(c), file=sys.stderr)
-        raise KeyError(f"Colunas-chave nao encontradas (cvm={col_cvm}, ticker={col_tk}).")
+    col_cnpj = _achar_coluna(df, "CNPJ")
+    print("AMOSTRA CNPJ (FCA):", file=sys.stderr)
+    print(df[[col_cnpj, "Codigo_Negociacao", "Valor_Mobiliario"]].head(5).to_string(), file=sys.stderr)
+    raise SystemExit("Diagnostico: veja a amostra acima.")
 
     df["_TK"] = df[col_tk].astype(str).str.strip().str.upper()
     m = df["_TK"].map(lambda t: bool(TICKER_RE.match(t)))
