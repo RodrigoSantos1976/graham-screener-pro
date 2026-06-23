@@ -1,20 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-mapa_ticker.py — Gera o de-para CD_CVM → [tickers] a partir do FCA da CVM.
-
-Fonte: Formulário Cadastral (FCA), arquivo fca_cia_aberta_valor_mobiliario,
-que lista os códigos de negociação (tickers) de cada companhia na B3,
-já chaveados por Codigo_CVM. Ponte nativa — sem casar por nome.
-
-    FCA → https://dados.cvm.gov.br/dados/CIA_ABERTA/DOC/FCA/DADOS/fca_cia_aberta_AAAA.zip
-
-Saída: mapa_ticker.json  →  { "9512": ["PETR3","PETR4"], "906": ["BBAS3"], ... }
-
-Como uma empresa tem várias classes (ON, PN, Units), o mapa é CD_CVM → LISTA.
-Mantém só ações/units negociadas na B3, na versão cadastral mais recente.
-"""
-
+"""mapa_ticker.py — gera CD_CVM -> [tickers] a partir do FCA da CVM."""
 import io
 import re
 import sys
@@ -26,7 +12,7 @@ import requests
 import pandas as pd
 
 FCA_URL = "https://dados.cvm.gov.br/dados/CIA_ABERTA/DOC/FCA/DADOS/fca_cia_aberta_{ano}.zip"
-TICKER_RE = re.compile(r"^[A-Z]{4}\d{1,2}$")   # PETR4, TAEE11, BPAC11...
+TICKER_RE = re.compile(r"^[A-Z]{4}\d{1,2}$")
 
 
 def _norm(s) -> str:
@@ -59,26 +45,30 @@ def gerar_mapa(conteudo: bytes) -> dict:
     zf = zipfile.ZipFile(io.BytesIO(conteudo))
     arq = _achar_arquivo(zf.namelist(), "valor", "mobiliario")
     if not arq:
-        raise FileNotFoundError("Arquivo fca_cia_aberta_valor_mobiliario não encontrado.")
+        raise FileNotFoundError("Arquivo fca_cia_aberta_valor_mobiliario nao encontrado.")
     df = _ler_csv(zf, arq)
 
-    col_cvm = _achar_coluna(df, "CVM")                        # Codigo_CVM
-    col_tk = _achar_coluna(df, "NEGOCIACAO")                  # Codigo_Negociacao
-    col_tipo = _achar_coluna(df, "VALOR", "MOBILIARIO")       # Valor_Mobiliario
-    col_adm = _achar_coluna(df, "ENTIDADE", "ADMINISTRADORA") # Sigla_Entidade_Administradora
+    col_cvm = (_achar_coluna(df, "CD", "CVM") or _achar_coluna(df, "CODIGO", "CVM")
+               or _achar_coluna(df, "CVM"))
+    col_tk = _achar_coluna(df, "NEGOCIACAO") or _achar_coluna(df, "TICKER")
+    col_tipo = _achar_coluna(df, "VALOR", "MOBILIARIO")
+    col_adm = _achar_coluna(df, "ENTIDADE", "ADMINISTRADORA")
     col_data = _achar_coluna(df, "DATA", "REFER") or _achar_coluna(df, "REFER")
+
     if not col_cvm or not col_tk:
-        raise KeyError(f"Colunas-chave não encontradas (cvm={col_cvm}, ticker={col_tk}).")
+        print("!!! COLUNA NAO ENCONTRADA. Colunas reais do arquivo:", file=sys.stderr)
+        for c in df.columns:
+            print("   ", repr(c), file=sys.stderr)
+        raise KeyError(f"Colunas-chave nao encontradas (cvm={col_cvm}, ticker={col_tk}).")
 
     df["_TK"] = df[col_tk].astype(str).str.strip().str.upper()
-    m = df["_TK"].map(lambda t: bool(TICKER_RE.match(t)))      # só tickers de ação válidos
-    if col_tipo:                                              # só ações/units
+    m = df["_TK"].map(lambda t: bool(TICKER_RE.match(t)))
+    if col_tipo:
         m &= df[col_tipo].map(lambda x: "ACOES" in _norm(x) or "ACAO" in _norm(x) or "UNIT" in _norm(x))
-    if col_adm:                                               # só B3
+    if col_adm:
         m &= df[col_adm].map(lambda x: "B3" in _norm(x) or "BOVESPA" in _norm(x))
     dff = df[m].copy()
 
-    # mantém apenas a versão cadastral mais recente por empresa
     if col_data:
         dff["_DT"] = pd.to_datetime(dff[col_data], errors="coerce", dayfirst=True)
         maxd = dff.groupby(col_cvm)["_DT"].transform("max")
@@ -107,7 +97,7 @@ def main(ano: int, saida: str = "mapa_ticker.json"):
         json.dump({str(k): v for k, v in mapa.items()}, fh, ensure_ascii=False, indent=2)
     n_emp = len(mapa)
     n_tk = sum(len(v) for v in mapa.values())
-    print(f"OK: {n_emp} empresas, {n_tk} tickers → {saida}", file=sys.stderr)
+    print(f"OK: {n_emp} empresas, {n_tk} tickers -> {saida}", file=sys.stderr)
 
 
 if __name__ == "__main__":
