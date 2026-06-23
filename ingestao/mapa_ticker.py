@@ -60,7 +60,7 @@ def gerar_mapa(conteudo: bytes) -> dict:
     if not col_cnpj or not col_tk:
         raise KeyError(f"Colunas-chave nao encontradas (cnpj={col_cnpj}, ticker={col_tk}).")
 
-   df["_TK"] = df[col_tk].astype(str).str.strip().str.upper()
+    df["_TK"] = df[col_tk].astype(str).str.strip().str.upper()
     df["_CNPJ"] = df[col_cnpj].map(_so_digitos)
     m = df["_TK"].map(lambda t: bool(TICKER_RE.match(str(t))))
     if col_tipo:
