@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Graham Value Screener — IFMG Formiga</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a;background:#f8f9fa;font-size:14px}
+.topbar{background:#1F4E79;color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.topbar-title{font-size:16px;font-weight:600}
+.topbar-sub{font-size:11px;opacity:.75;margin-top:2px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:3px 10px;border-radius:20px;background:rgba(255,255,255,.15);color:#fff}
+.container{max-width:1150px;margin:0 auto;padding:20px 16px}
+.nav{display:flex;gap:4px;margin-bottom:20px;background:#fff;padding:4px;border-radius:10px;width:fit-content;border:1px solid #e5e7eb;box-shadow:0 1px 3px rgba(0,0,0,.06);flex-wrap:wrap}
+.nav button{background:none;border:none;padding:7px 14px;font-size:12px;cursor:pointer;color:#6b7280;border-radius:7px;font-family:inherit;transition:all .15s}
+.nav button.active{background:#1F4E79;color:#fff;font-weight:500}
+.nav button:hover:not(.active){background:#f3f4f6;color:#1a1a1a}
+.section{display:none}.section.active{display:block}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+.card{background:#fff;border-radius:10px;padding:14px;border:1px solid #e5e7eb}
+.card .lbl{font-size:11px;color:#6b7280;margin-bottom:5px}
+.card .val{font-size:22px;font-weight:600}
+.val.g{color:#15803d}.val.r{color:#dc2626}.val.a{color:#d97706}
+.ctrl-block{background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:10px;border:1px solid #e5e7eb}
+.ctrl-title{font-size:10px;font-weight:600;color:#9ca3af;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em}
+.row-ctrl{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.row-ctrl label{font-size:12px;color:#6b7280}
+.row-ctrl input[type=range]{width:90px;accent-color:#1F4E79}
+.row-ctrl span.rv{font-size:12px;font-weight:600;min-width:34px;color:#1F4E79}
+.row-ctrl input[type=text],.row-ctrl select{font-size:12px;padding:5px 9px;border-radius:7px;border:1px solid #d1d5db;background:#fff;color:#1a1a1a;font-family:inherit}
+.size-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid #f3f4f6}
+.size-btns{display:flex;gap:5px;flex-wrap:wrap}
+.size-btn{font-size:11px;padding:4px 12px;border-radius:20px;cursor:pointer;border:1px solid #d1d5db;background:#fff;color:#6b7280;font-family:inherit;transition:all .15s}
+.size-btn.active{background:#1F4E79;color:#fff;border-color:#1F4E79;font-weight:600}
+.size-btn:hover:not(.active){background:#f3f4f6}
+.size-custom input{width:56px;font-size:12px;padding:4px 8px;border-radius:7px;border:1px solid #d1d5db;font-family:inherit}
+.size-info{font-size:11px;color:#9ca3af}
+.tbl-wrap{overflow-x:auto;border:1px solid #e5e7eb;border-radius:10px;background:#fff;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+th{background:#f9fafb;padding:8px 10px;text-align:left;font-weight:500;font-size:11px;color:#6b7280;border-bottom:1px solid #e5e7eb;white-space:nowrap;cursor:pointer;user-select:none}
+th:hover{color:#1a1a1a}
+td{padding:7px 10px;border-bottom:1px solid #f3f4f6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f9fafb}
+tr.sel-row td{background:#f0fdf4!important}
+tr.sel-row td:first-child{border-left:3px solid #15803d}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600}
+.badge.pass{background:#dcfce7;color:#15803d}
+.badge.fail{background:#fee2e2;color:#dc2626}
+.badge.sel{background:#15803d;color:#fff}
+.badge.warn{background:#fef9c3;color:#a16207}
+.mos-wrap{display:flex;align-items:center;gap:5px}
+.mos-bar{height:5px;border-radius:3px;background:#e5e7eb;flex:1}
+.mos-fill{height:100%;border-radius:3px}
+.tick{color:#15803d}.cross{color:#dc2626}
+.rank-badge{display:inline-flex;width:20px;height:20px;border-radius:50%;background:#f3f4f6;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#6b7280}
+.rank-badge.top{background:#15803d;color:#fff}
+.upload-zone{border:2px dashed #d1d5db;border-radius:12px;padding:40px;text-align:center;cursor:pointer;transition:all .15s;margin-bottom:16px;background:#fff}
+.upload-zone:hover,.upload-zone.drag{border-color:#1F4E79;background:#eff6ff}
+.upload-zone input[type=file]{display:none}
+.formato-box{background:#eff6ff;border-radius:10px;padding:14px;margin-bottom:14px;border:1px solid #bfdbfe}
+.tag{font-size:11px;padding:2px 9px;border-radius:20px;background:#dbeafe;color:#1e40af;font-weight:500;display:inline-block}
+.tag-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.btn{font-size:12px;padding:7px 16px;border-radius:8px;cursor:pointer;border:1px solid #d1d5db;background:#fff;color:#1a1a1a;font-family:inherit;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
+.btn:hover{background:#f3f4f6}
+.btn-primary{background:#1F4E79;color:#fff;border:none}.btn-primary:hover{background:#1a4368}
+.btn-success{background:#15803d;color:#fff;border:none}.btn-success:hover{background:#166534}
+.btn-danger{background:#dc2626;color:#fff;border:none}.btn-danger:hover{background:#b91c1c}
+.btn-sm{padding:4px 10px;font-size:11px}
+.status-bar{font-size:11px;color:#15803d;padding:8px 12px;background:#f0fdf4;border-radius:8px;display:flex;align-items:center;gap:6px;border:1px solid #bbf7d0;margin-bottom:12px}
+.status-bar.err{color:#dc2626;background:#fef2f2;border-color:#fecaca}
+.status-bar.warn{color:#a16207;background:#fefce8;border-color:#fde047}
+.dot{width:7px;height:7px;border-radius:50%;background:#15803d;flex-shrink:0}
+.dot.empty{background:#dc2626}.dot.warn{background:#d97706}
+.calc-wrap{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.calc-field{display:flex;flex-direction:column;gap:4px}
+.calc-field label{font-size:11px;color:#6b7280}
+.calc-field input{font-size:12px;padding:7px 10px;border-radius:8px;border:1px solid #d1d5db;background:#fff;color:#1a1a1a;font-family:inherit}
+.calc-field input:focus{outline:none;border-color:#1F4E79;box-shadow:0 0 0 2px rgba(31,78,121,.1)}
+.result-box{background:#f9fafb;border-radius:10px;padding:14px;border:1px solid #e5e7eb}
+.result-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #e5e7eb;font-size:12px;align-items:center}
+.result-row:last-child{border:none;font-weight:600;font-size:13px;padding-top:10px}
+.hist-item{background:#fff;border-radius:10px;padding:14px 16px;display:flex;justify-content:space-between;align-items:flex-start;border:1px solid #e5e7eb;margin-bottom:8px}
+.empty-state{text-align:center;padding:40px;color:#9ca3af;font-size:13px;background:#fff;border-radius:10px;border:1px solid #e5e7eb}
+.info-box{background:#fefce8;border:1px solid #fde047;border-radius:10px;padding:14px;margin-top:14px;font-size:12px;color:#713f12;line-height:1.6}
+.ref{font-size:10px;color:#9ca3af;font-style:italic}
+/* Acompanhamento */
+.acomp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px}
+.acomp-card{background:#fff;border-radius:10px;padding:14px;border:1px solid #e5e7eb}
+.acomp-card .ticker{font-size:13px;font-weight:600;margin-bottom:4px}
+.acomp-card .preco{font-size:20px;font-weight:600}
+.acomp-card .var{font-size:12px;margin-top:2px}
+.acomp-card .var.pos{color:#15803d}.acomp-card .var.neg{color:#dc2626}
+.acomp-card .base{font-size:10px;color:#9ca3af;margin-top:2px}
+.chart-box{background:#fff;border-radius:10px;border:1px solid #e5e7eb;padding:16px;margin-bottom:16px}
+.chart-box h3{font-size:13px;font-weight:600;margin-bottom:4px;color:#1a1a1a}
+.chart-box p{font-size:11px;color:#9ca3af;margin-bottom:14px}
+.chart-wrap{position:relative;height:320px}
+.loading{display:flex;align-items:center;justify-content:center;gap:8px;padding:20px;color:#6b7280;font-size:12px}
+.spin{width:16px;height:16px;border:2px solid #e5e7eb;border-top-color:#1F4E79;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.legend-row{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:#6b7280}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+footer{text-align:center;padding:20px;font-size:11px;color:#9ca3af;margin-top:20px;border-top:1px solid #e5e7eb}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <div class="topbar-title">📈 Graham Value Screener</div>
+    <div class="topbar-sub">IFMG Campus Formiga — Mestrado Profissional em Administração</div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <span class="chip" id="chip-n">0 ativos</span>
+    <span class="chip" id="chip-data">sem dados</span>
+  </div>
+</div>
+
+<div class="container">
+<div class="nav">
+  <button class="active" onclick="showTab('importar',this)">⬆ Importar</button>
+  <button onclick="showTab('triagem',this)">⚙ Triagem</button>
+  <button onclick="showTab('calculadora',this)">🧮 Calculadora</button>
+  <button onclick="showTab('carteira',this)">💼 Carteira</button>
+  <button onclick="showTab('acompanhamento',this)">📊 Acompanhamento</button>
+  <button onclick="showTab('historico',this)">📋 Histórico</button>
+  <button onclick="showTab('tutorial',this)">📖 Tutorial</button>
+</div>
+
+<!-- IMPORTAR -->
+<div id="importar" class="section active">
+  <div class="upload-zone" id="dropzone" onclick="document.getElementById('fi').click()"
+    ondragover="event.preventDefault();this.classList.add('drag')"
+    ondragleave="this.classList.remove('drag')"
+    ondrop="handleDrop(event)">
+    <input type="file" id="fi" accept=".csv,.txt" onchange="handleFile(this.files[0])">
+    <div style="font-size:40px;margin-bottom:12px">📂</div>
+    <p style="font-size:13px;color:#6b7280;margin-bottom:6px"><strong>Arraste o arquivo da Economatica aqui</strong> ou clique para selecionar</p>
+    <small style="color:#9ca3af;font-size:11px">Formatos aceitos: CSV ou TXT (vírgula, ponto-e-vírgula ou tabulação)</small>
+  </div>
+  <div class="formato-box">
+    <p style="font-size:12px;color:#1e40af;margin-bottom:6px"><strong>Colunas esperadas no arquivo exportado da Economatica:</strong></p>
+    <div class="tag-list">
+      <span class="tag">TICKER</span><span class="tag">PRECO</span><span class="tag">DY</span>
+      <span class="tag">P/L</span><span class="tag">P/VP</span><span class="tag">LIQ. CORRENTE</span>
+      <span class="tag">VPA</span><span class="tag">LPA</span>
+    </div>
+    <p style="font-size:12px;color:#1e40af;margin-top:10px">Calculado automaticamente: <code style="font-family:monospace;background:#dbeafe;padding:2px 5px;border-radius:4px;font-size:11px">VI = √(22,5 × LPA × VPA)</code> e <code style="font-family:monospace;background:#dbeafe;padding:2px 5px;border-radius:4px;font-size:11px">MoS = (VI − Preço) / VI</code></p>
+    <p class="ref" style="margin-top:6px">Graham e Zweig (2003) | Palazzo et al. (2018)</p>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <button class="btn btn-primary" onclick="loadDemo()">▶ Carregar dados de demonstração (35 ativos)</button>
+    <span style="font-size:11px;color:#9ca3af">ou importe seu arquivo CSV/TXT acima</span>
+  </div>
+  <div id="import-log" class="status-bar" style="display:none;margin-top:14px">
+    <div class="dot" id="dot-s"></div><span id="log-msg"></span>
+  </div>
+  <div class="info-box">
+    <strong>Como exportar da Economatica:</strong><br>
+    1. Acesse a Economatica e filtre as ações desejadas<br>
+    2. Adicione as colunas: Ticker, Preço, DY, P/L, P/VP, Liquidez Corrente, VPA, LPA<br>
+    3. Exporte como CSV ou TXT (separado por vírgula ou tabulação)<br>
+    4. Arraste o arquivo aqui — o app processa e calcula VI e MoS automaticamente
+  </div>
+</div>
+
+<!-- TRIAGEM -->
+<div id="triagem" class="section">
+  <div class="cards">
+    <div class="card"><div class="lbl">Total analisado</div><div class="val" id="c-total">—</div></div>
+    <div class="card"><div class="lbl">Aprovados (filtros Graham)</div><div class="val g" id="c-pass">—</div></div>
+    <div class="card"><div class="lbl">Na carteira selecionada</div><div class="val g" id="c-sel">—</div></div>
+    <div class="card"><div class="lbl">MoS média (carteira)</div><div class="val a" id="c-avgmos">—</div></div>
+    <div class="card"><div class="lbl">DY médio (carteira)</div><div class="val a" id="c-avgdy">—</div></div>
+  </div>
+  <div class="ctrl-block">
+    <div class="ctrl-title">Filtros de Graham</div>
+    <div class="row-ctrl">
+      <label>MoS mín.</label>
+      <input type="range" id="sl-mos" min="10" max="70" value="33" step="1" oninput="updateFilter()">
+      <span class="rv" id="rv-mos">33%</span>
+      <label style="margin-left:12px">P/L máx.</label>
+      <input type="range" id="sl-pl" min="5" max="25" value="15" step="1" oninput="updateFilter()">
+      <span class="rv" id="rv-pl">15×</span>
+      <label style="margin-left:12px">P/VP máx.</label>
+      <input type="range" id="sl-pvp" min="0.5" max="3" value="1.5" step="0.1" oninput="updateFilter()">
+      <span class="rv" id="rv-pvp">1.5×</span>
+      <label style="margin-left:12px">Liq. mín.</label>
+      <input type="range" id="sl-liq" min="1" max="5" value="1.22" step="0.01" oninput="updateFilter()">
+      <span class="rv" id="rv-liq">1.22</span>
+      <label style="margin-left:12px">DY mín.</label>
+      <input type="range" id="sl-dy" min="0" max="20" value="0" step="0.5" oninput="updateFilter()">
+      <span class="rv" id="rv-dy">0%</span>
+    </div>
+    <div class="size-row">
+      <label style="font-size:12px;color:#6b7280">Tamanho da carteira — top N por maior MoS:</label>
+      <div class="size-btns">
+        <button class="size-btn" onclick="setSize(5,this)">5 ativos</button>
+        <button class="size-btn" onclick="setSize(10,this)">10 ativos</button>
+        <button class="size-btn" onclick="setSize(15,this)">15 ativos</button>
+        <button class="size-btn" onclick="setSize(20,this)">20 ativos</button>
+        <button class="size-btn active" onclick="setSize(0,this)">Todos aprovados</button>
+      </div>
+      <div class="size-custom" style="display:flex;align-items:center;gap:5px">
+        <span style="font-size:12px;color:#6b7280">ou:</span>
+        <input type="number" id="custom-size" min="1" max="200" placeholder="N" oninput="setCustomSize(this.value)">
+      </div>
+      <span class="size-info" id="size-info"></span>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+    <input type="text" id="srch" placeholder="Buscar ticker..." oninput="renderTri()" style="font-size:12px;padding:6px 10px;border-radius:8px;border:1px solid #d1d5db;width:140px;font-family:inherit">
+    <select id="fst" onchange="renderTri()" style="font-size:12px;padding:6px 10px;border-radius:8px;border:1px solid #d1d5db;font-family:inherit">
+      <option value="all">Todos os ativos</option>
+      <option value="pass">Só aprovados</option>
+      <option value="sel">Só carteira (automática)</option>
+      <option value="manual">Só seleção manual</option>
+      <option value="fail">Só reprovados</option>
+    </select>
+    <button class="btn btn-success" onclick="salvarCarteira()">💾 Salvar carteira no histórico</button>
+    <button class="btn" onclick="limparManual()" id="btn-limpar-manual" style="display:none;border-color:#7c3aed;color:#7c3aed">✕ Limpar seleção manual</button>
+    <span id="info-manual" style="font-size:11px;color:#7c3aed;font-weight:500"></span>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th style="width:28px">#</th>
+        <th style="width:32px" title="Selecionar para carteira manual"><input type="checkbox" id="chk-all" onchange="toggleAll(this.checked)" title="Selecionar todos aprovados"></th>
+        <th style="width:65px" onclick="setSrt('ticker')">Ticker ↕</th>
+        <th style="width:65px" onclick="setSrt('preco')">Preço ↕</th>
+        <th style="width:50px" onclick="setSrt('dy')">DY% ↕</th>
+        <th style="width:50px" onclick="setSrt('pl')">P/L ↕</th>
+        <th style="width:52px" onclick="setSrt('pvp')">P/VP ↕</th>
+        <th style="width:58px" onclick="setSrt('liq')">Liq. ↕</th>
+        <th style="width:70px" onclick="setSrt('vi')">VI (R$) ↕</th>
+        <th style="width:108px" onclick="setSrt('mos')">MoS ↕</th>
+        <th style="width:100px">Status</th>
+        <th style="width:48px">P/L</th>
+        <th style="width:48px">P/VP</th>
+        <th style="width:48px">Liq.</th>
+        <th style="width:48px">MoS</th>
+      </tr></thead>
+      <tbody id="tbody-tri"></tbody>
+    </table>
+  </div>
+  <div id="tri-empty" class="empty-state" style="display:none">Acesse <strong>Importar</strong> para carregar os dados da Economatica.</div>
+</div>
+
+<!-- CALCULADORA -->
+<div id="calculadora" class="section">
+  <p style="font-size:13px;color:#6b7280;margin-bottom:16px">Calcule o Valor Intrínseco e a Margem de Segurança individualmente para qualquer ação.</p>
+  <div class="calc-wrap">
+    <div>
+      <div class="calc-grid">
+        <div class="calc-field"><label>Ticker (preenche automaticamente)</label><input id="ct" placeholder="ex: PETR4" list="tl" onchange="autoFill()"><datalist id="tl"></datalist></div>
+        <div class="calc-field"><label>Preço atual (R$)</label><input id="cp" type="number" step="0.01" placeholder="0,00" oninput="calcVI()"></div>
+        <div class="calc-field"><label>LPA — Lucro por Ação (R$)</label><input id="cl" type="number" step="0.01" placeholder="0,00" oninput="calcVI()"></div>
+        <div class="calc-field"><label>VPA — Valor Patrimonial por Ação (R$)</label><input id="cv" type="number" step="0.01" placeholder="0,00" oninput="calcVI()"></div>
+        <div class="calc-field"><label>P/L</label><input id="cpl" type="number" step="0.01" placeholder="0,00" oninput="calcVI()"></div>
+        <div class="calc-field"><label>P/VP</label><input id="cpvp" type="number" step="0.01" placeholder="0,00" oninput="calcVI()"></div>
+        <div class="calc-field"><label>Liquidez Corrente</label><input id="cliq" type="number" step="0.01" placeholder="0,00" oninput="calcVI()"></div>
+        <div class="calc-field"><label>DY (%)</label><input id="cdy" type="number" step="0.01" placeholder="0,00"></div>
+      </div>
+    </div>
+    <div>
+      <div class="result-box" id="calc-res" style="display:none">
+        <div class="result-row"><span>VI = √(22,5 × LPA × VPA)</span><span id="rvi" style="font-weight:600"></span></div>
+        <div class="result-row"><span>Preço atual</span><span id="rpreco"></span></div>
+        <div class="result-row"><span>MoS = (VI − Preço) / VI</span><span id="rmos"></span></div>
+        <div class="result-row" style="margin-top:8px;border-top:2px solid #e5e7eb;padding-top:10px">
+          <span>P/L ≤ 15 <span class="ref">(Palazzo et al., 2018)</span></span><span id="rpl"></span></div>
+        <div class="result-row"><span>P/VP ≤ 1,5 <span class="ref">(Graham & Zweig, 2003)</span></span><span id="rpvp"></span></div>
+        <div class="result-row"><span>Liquidez Corrente ≥ 1,22 <span class="ref">(Palazzo et al., 2018)</span></span><span id="rliq"></span></div>
+        <div class="result-row"><span>MoS ≥ 33% <span class="ref">(Graham & Zweig, 2003)</span></span><span id="rmosok"></span></div>
+        <div class="result-row"><span>Resultado final</span><span id="rfinal"></span></div>
+      </div>
+      <div id="calc-empty" style="color:#9ca3af;font-size:12px;padding:24px;text-align:center;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb">Preencha Preço, LPA e VPA para calcular o Valor Intrínseco.</div>
+    </div>
+  </div>
+</div>
+
+<!-- CARTEIRA -->
+<div id="carteira" class="section">
+  <p style="font-size:13px;color:#6b7280;margin-bottom:16px">Ativos selecionados — os N com maior MoS entre os aprovados nos filtros de Graham (equally weighted).</p>
+  <div class="cards">
+    <div class="card"><div class="lbl">Ativos na carteira</div><div class="val g" id="cart-n">—</div></div>
+    <div class="card"><div class="lbl">VI médio</div><div class="val" id="cart-vi">—</div></div>
+    <div class="card"><div class="lbl">MoS média</div><div class="val g" id="cart-mos">—</div></div>
+    <div class="card"><div class="lbl">DY médio</div><div class="val a" id="cart-dy">—</div></div>
+    <div class="card"><div class="lbl">P/L médio</div><div class="val" id="cart-pl">—</div></div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th style="width:36px">Rank</th>
+        <th style="width:65px">Ticker</th>
+        <th style="width:65px">Preço</th>
+        <th style="width:50px">DY%</th>
+        <th style="width:50px">P/L</th>
+        <th style="width:52px">P/VP</th>
+        <th style="width:58px">Liq.</th>
+        <th style="width:70px">VI (R$)</th>
+        <th style="width:112px">MoS</th>
+        <th style="width:80px">Peso (EW)</th>
+      </tr></thead>
+      <tbody id="tbody-cart"></tbody>
+    </table>
+  </div>
+  <div id="cart-empty" class="empty-state">Nenhum ativo aprovado. Ajuste os filtros na aba Triagem.</div>
+</div>
+
+<!-- ACOMPANHAMENTO -->
+<div id="acompanhamento" class="section">
+
+  <div id="acomp-sem-carteira" class="empty-state">
+    Salve uma carteira no histórico primeiro (aba Triagem → Salvar carteira no histórico).
+  </div>
+
+  <div id="acomp-content" style="display:none">
+
+    <!-- Seletor de carteira -->
+    <div class="ctrl-block" style="margin-bottom:12px">
+      <div class="ctrl-title">Selecionar carteira para acompanhar</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <select id="select-carteira" onchange="selecionarCarteira(this.value)"
+          style="font-size:13px;padding:7px 12px;border-radius:8px;border:1px solid #d1d5db;font-family:inherit;min-width:320px;background:#fff;color:#1a1a1a">
+        </select>
+        <button class="btn btn-primary" onclick="buscarPrecos()" id="btn-atualizar">🔄 Atualizar preços</button>
+        <span style="font-size:11px;color:#9ca3af;align-self:center" id="ultima-atualizacao"></span>
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:#6b7280" id="acomp-info-carteira"></div>
+    </div>
+
+    <div id="status-acomp" class="status-bar warn" style="display:none">
+      <div class="dot warn" id="dot-acomp"></div><span id="msg-acomp"></span>
+    </div>
+
+    <!-- Cards de performance -->
+    <div class="cards" style="margin-bottom:16px">
+      <div class="card">
+        <div class="lbl">Carteira Graham (período)</div>
+        <div class="val g" id="cart-perf">—</div>
+        <div style="font-size:10px;color:#9ca3af;margin-top:3px" id="cart-perf-base"></div>
+      </div>
+      <div class="card">
+        <div class="lbl">IBOV (período)</div>
+        <div class="val" id="ibov-preco">—</div>
+        <div style="font-size:12px;margin-top:2px" id="ibov-var"></div>
+        <div style="font-size:10px;color:#9ca3af;margin-top:2px" id="ibov-base"></div>
+      </div>
+      <div class="card">
+        <div class="lbl">CDI acumulado (período)</div>
+        <div class="val a" id="cdi-val">—</div>
+        <div style="font-size:10px;color:#9ca3af;margin-top:3px" id="cdi-base"></div>
+      </div>
+      <div class="card">
+        <div class="lbl">Atualizações registradas</div>
+        <div class="val" id="acomp-nsnaps">—</div>
+        <div style="font-size:10px;color:#9ca3af;margin-top:3px" id="acomp-primeira-data"></div>
+      </div>
+    </div>
+
+    <!-- Cards dos ativos -->
+    <div class="ctrl-title" style="margin-bottom:8px">PREÇOS ATUAIS — ATIVOS DA CARTEIRA</div>
+    <div class="acomp-grid" id="acomp-cards"></div>
+
+    <!-- Gráfico -->
+    <div class="chart-box" style="margin-top:8px">
+      <h3>Evolução percentual acumulada desde a formação da carteira</h3>
+      <p>Atualizado a cada vez que você clica em "Atualizar preços". Cada carteira tem seu próprio histórico independente.</p>
+      <div class="legend-row">
+        <div class="legend-item"><div class="legend-dot" style="background:#1F4E79"></div>Carteira Graham (EW)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#d97706"></div>IBOV</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#15803d"></div>CDI acumulado</div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="grafico-perf"></canvas>
+      </div>
+    </div>
+
+    <!-- Tabela de variações -->
+    <div class="ctrl-title" style="margin-bottom:8px;margin-top:16px">DETALHAMENTO POR ATIVO</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th style="width:70px">Ticker</th>
+          <th style="width:85px">Preço base</th>
+          <th style="width:85px">Preço atual</th>
+          <th style="width:95px">Variação (%)</th>
+          <th style="width:85px">Variação (R$)</th>
+          <th style="width:110px">Última atualização</th>
+        </tr></thead>
+        <tbody id="tbody-acomp"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- HISTÓRICO -->
+<div id="historico" class="section">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <p style="font-size:13px;color:#6b7280">Carteiras salvas — clique em <strong>Acompanhar</strong> para monitorar cada uma individualmente.</p>
+    <button class="btn btn-danger btn-sm" onclick="limparHistorico()">🗑 Limpar tudo</button>
+  </div>
+  <div id="hist-list"></div>
+  <div id="hist-empty" class="empty-state">Nenhuma carteira salva ainda.<br>Use <strong>"Salvar carteira no histórico"</strong> na aba Triagem.</div>
+</div>
+</div>
+
+<!-- TUTORIAL -->
+<div id="tutorial" class="section">
+
+<div style="max-width:800px">
+
+  <!-- Cabeçalho -->
+  <div style="background:linear-gradient(135deg,#1F4E79,#2E75B6);border-radius:12px;padding:28px 32px;margin-bottom:24px;color:#fff">
+    <div style="font-size:22px;font-weight:700;margin-bottom:8px">📖 Guia de Uso — Graham Value Screener</div>
+    <div style="font-size:13px;opacity:.85;line-height:1.6">Aprenda a selecionar ações subavaliadas usando os critérios de Benjamin Graham adaptados ao mercado brasileiro. Este guia é voltado para alunos, investidores iniciantes e interessados em Value Investing.</div>
+    <div style="margin-top:12px;font-size:11px;opacity:.7">Baseado em: Graham e Zweig (2003) · Palazzo et al. (2018)</div>
+  </div>
+
+  <!-- Índice -->
+  <div style="background:#fff;border-radius:10px;border:1px solid #e5e7eb;padding:16px 20px;margin-bottom:20px">
+    <div style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Conteúdo</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      <a href="#s1" style="font-size:12px;color:#1F4E79;text-decoration:none;padding:4px 0">1. O que é Value Investing?</a>
+      <a href="#s2" style="font-size:12px;color:#1F4E79;text-decoration:none;padding:4px 0">2. Valor Intrínseco e Margem de Segurança</a>
+      <a href="#s3" style="font-size:12px;color:#1F4E79;text-decoration:none;padding:4px 0">3. Os filtros de Graham</a>
+      <a href="#s4" style="font-size:12px;color:#1F4E79;text-decoration:none;padding:4px 0">4. Como importar dados</a>
+      <a href="#s5" style="font-size:12px;color:#1F4E79;text-decoration:none;padding:4px 0">5. Como usar a Triagem</a>
+      <a href="#s6" style="font-size:12px;color:#1F4E79;text-decoration:none;padding:4px 0">6. Seleção de carteira</a>
+      <a href="#s7" style="font-size:12px;color:#1F4E79;text-decoration:none;padding:4px 0">7. Calculadora de VI e MoS</a>
+      <a href="#s8" style="font-size:12px;color:#1F4E79;text-decoration:none;padding:4px 0">8. Acompanhamento e benchmarks</a>
+    </div>
+  </div>
+
+  <!-- Seção 1 -->
+  <div id="s1" style="background:#fff;border-radius:10px;border:1px solid #e5e7eb;padding:20px 24px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <div style="background:#dbeafe;color:#1e40af;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700">1</div>
+      <div style="font-size:15px;font-weight:600">O que é Value Investing?</div>
+    </div>
+    <p style="font-size:13px;color:#374151;line-height:1.7;margin-bottom:10px">
+      Value Investing é uma estratégia de investimento que busca comprar ações de empresas cujo preço de mercado está <strong>abaixo do seu valor real</strong> — o chamado Valor Intrínseco. A ideia central é que o mercado frequentemente precifica ações de forma incorreta no curto prazo, criando oportunidades para investidores pacientes e disciplinados.
+    </p>
+    <p style="font-size:13px;color:#374151;line-height:1.7;margin-bottom:10px">
+      A estratégia foi desenvolvida por <strong>Benjamin Graham</strong>, professor da Universidade Columbia e mentor de Warren Buffett. Sua obra <em>O Investidor Inteligente</em> (1949) é considerada a bíblia do Value Investing e estabelece critérios objetivos para identificar ações subavaliadas.
+    </p>
+    <div style="background:#f0fdf4;border-left:3px solid #15803d;border-radius:0 8px 8px 0;padding:10px 14px;font-size:12px;color:#166534;line-height:1.6">
+      <strong>Referência:</strong> Graham, B.; Zweig, J. <em>O Investidor Inteligente.</em> HarperCollins, 2003. | Palazzo, L. et al. <em>Value Investing no Mercado Brasileiro.</em> 2018.
+    </div>
+  </div>
+
+  <!-- Seção 2 -->
+  <div id="s2" style="background:#fff;border-radius:10px;border:1px solid #e5e7eb;padding:20px 24px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <div style="background:#dbeafe;color:#1e40af;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700">2</div>
+      <div style="font-size:15px;font-weight:600">Valor Intrínseco e Margem de Segurança</div>
+    </div>
+    <p style="font-size:13px;color:#374151;line-height:1.7;margin-bottom:12px">
+      O <strong>Valor Intrínseco (VI)</strong> é uma estimativa do valor justo de uma ação com base nos fundamentos da empresa — seus lucros e patrimônio. Graham propôs a seguinte fórmula simplificada:
+    </p>
+    <div style="background:#1F4E79;color:#fff;border-radius:10px;padding:16px 20px;text-align:center;margin-bottom:12px">
+      <div style="font-size:20px;font-weight:700;letter-spacing:.02em">VI = √ (22,5 × LPA × VPA)</div>
+      <div style="font-size:11px;opacity:.8;margin-top:6px">Onde: LPA = Lucro por Ação · VPA = Valor Patrimonial por Ação · 22,5 = constante de Graham (P/L ≤ 15 × P/VP ≤ 1,5)</div>
+    </div>
+    <p style="font-size:13px;color:#374151;line-height:1.7;margin-bottom:12px">
+      Já a <strong>Margem de Segurança (MoS)</strong> mede o desconto do preço atual em relação ao Valor Intrínseco. Quanto maior a MoS, maior o desconto e menor o risco:
+    </p>
+    <div style="background:#15803d;color:#fff;border-radius:10px;padding:16px 20px;text-align:center;margin-bottom:12px">
+      <div style="font-size:20px;font-weight:700">MoS = (VI − Preço) / VI</div>
+      <div style="font-size:11px;opacity:.8;margin-top:6px">Graham recomenda MoS mínima de 33% para ações ordinárias</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px">
+      <div style="background:#f0fdf4;border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:13px;font-weight:700;color:#15803d">MoS ≥ 50%</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:3px">Desconto elevado — alto potencial</div>
+      </div>
+      <div style="background:#fefce8;border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:13px;font-weight:700;color:#d97706">MoS 33–50%</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:3px">Desconto moderado — aprovado</div>
+      </div>
+      <div style="background:#fef2f2;border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:13px;font-weight:700;color:#dc2626">MoS &lt; 33%</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:3px">Desconto insuficiente — reprovado</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Seção 3 -->
+  <div id="s3" style="background:#fff;border-radius:10px;border:1px solid #e5e7eb;padding:20px 24px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <div style="background:#dbeafe;color:#1e40af;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700">3</div>
+      <div style="font-size:15px;font-weight:600">Os filtros de Graham adaptados ao mercado brasileiro</div>
+    </div>
+    <p style="font-size:13px;color:#374151;line-height:1.7;margin-bottom:14px">
+      Além do Valor Intrínseco e da Margem de Segurança, Graham propôs critérios adicionais para garantir qualidade e segurança na seleção. Os filtros abaixo foram adaptados ao mercado brasileiro conforme <strong>Palazzo et al. (2018)</strong> e utilizados neste estudo:
+    </p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb">
+        <div style="background:#dcfce7;color:#15803d;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px">P/L ≤ 15</div>
+        <div><div style="font-size:12px;font-weight:600;margin-bottom:2px">Preço / Lucro máximo de 15×</div><div style="font-size:12px;color:#6b7280;line-height:1.5">Indica quantas vezes o lucro anual o investidor está pagando pela ação. Um P/L muito alto sugere que a ação está cara em relação aos seus lucros.</div></div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb">
+        <div style="background:#dcfce7;color:#15803d;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px">P/VP ≤ 1,5</div>
+        <div><div style="font-size:12px;font-weight:600;margin-bottom:2px">Preço / Valor Patrimonial máximo de 1,5×</div><div style="font-size:12px;color:#6b7280;line-height:1.5">Compara o preço de mercado com o patrimônio líquido por ação. Valores abaixo de 1,0 indicam que a ação está sendo negociada abaixo do valor contábil da empresa.</div></div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb">
+        <div style="background:#dcfce7;color:#15803d;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px">Liq ≥ 1,22</div>
+        <div><div style="font-size:12px;font-weight:600;margin-bottom:2px">Liquidez Corrente mínima de 1,22</div><div style="font-size:12px;color:#6b7280;line-height:1.5">Mede a capacidade da empresa de pagar suas dívidas de curto prazo. Um índice abaixo de 1,0 indica que a empresa pode ter dificuldades financeiras.</div></div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb">
+        <div style="background:#dcfce7;color:#15803d;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px">MoS ≥ 33%</div>
+        <div><div style="font-size:12px;font-weight:600;margin-bottom:2px">Margem de Segurança mínima de 33%</div><div style="font-size:12px;color:#6b7280;line-height:1.5">A ação deve estar sendo negociada com pelo menos 33% de desconto em relação ao seu Valor Intrínseco calculado pela fórmula de Graham.</div></div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb">
+        <div style="background:#dbeafe;color:#1e40af;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px">DY (opcional)</div>
+        <div><div style="font-size:12px;font-weight:600;margin-bottom:2px">Dividend Yield — retorno em dividendos</div><div style="font-size:12px;color:#6b7280;line-height:1.5">Percentual do preço da ação pago em dividendos nos últimos 12 meses. Um DY elevado pode indicar empresa madura e geradora de caixa, mas deve ser analisado com cautela.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Seção 4 -->
+  <div id="s4" style="background:#fff;border-radius:10px;border:1px solid #e5e7eb;padding:20px 24px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <div style="background:#dbeafe;color:#1e40af;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700">4</div>
+      <div style="font-size:15px;font-weight:600">Como importar dados da Economatica</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="background:#1F4E79;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">1</div>
+        <div style="font-size:13px;color:#374151;line-height:1.6">Acesse a <strong>Economatica</strong> e selecione as ações que deseja analisar</div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="background:#1F4E79;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">2</div>
+        <div style="font-size:13px;color:#374151;line-height:1.6">Adicione as colunas: <strong>Ticker, Preço, DY, P/L, P/VP, Liquidez Corrente, VPA e LPA</strong></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="background:#1F4E79;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">3</div>
+        <div style="font-size:13px;color:#374151;line-height:1.6">Exporte como <strong>CSV ou TXT</strong> — o separador pode ser vírgula, ponto-e-vírgula ou tabulação</div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="background:#1F4E79;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">4</div>
+        <div style="font-size:13px;color:#374151;line-height:1.6">Na aba <strong>Importar</strong>, arraste o arquivo para a área indicada — o app calcula VI e MoS automaticamente</div>
+      </div>
+    </div>
+    <div style="background:#fefce8;border:1px solid #fde047;border-radius:8px;padding:10px 14px;margin-top:12px;font-size:12px;color:#713f12">
+      💡 <strong>Dica:</strong> Atualize os dados trimestralmente ou mensalmente para manter a análise consistente com os fundamentos mais recentes das empresas.
+    </div>
+
+    <div style="margin-top:14px">
+      <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px">Outras fontes de dados compatíveis:</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb">
+          <div style="background:#1F4E79;color:#fff;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;flex-shrink:0">Economatica</div>
+          <div style="font-size:12px;color:#374151;line-height:1.5"><strong>Fonte principal recomendada.</strong> Base profissional utilizada nesta pesquisa, disponível no IFMG. Oferece dados históricos completos, filtros avançados e exportação em CSV/TXT com todas as colunas necessárias.</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb">
+          <div style="background:#15803d;color:#fff;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;flex-shrink:0">Status Invest</div>
+          <div style="font-size:12px;color:#374151;line-height:1.5"><strong>Alternativa gratuita e acessível.</strong> Disponível em <em>statusinvest.com.br</em>. Permite exportar dados fundamentalistas de ações em CSV. Ideal para usuários sem acesso à Economatica.</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb">
+          <div style="background:#d97706;color:#fff;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;flex-shrink:0">Fundamentus</div>
+          <div style="font-size:12px;color:#374151;line-height:1.5"><strong>Outra alternativa gratuita.</strong> Disponível em <em>fundamentus.com.br</em>. Oferece indicadores fundamentalistas das ações da B3. Os dados podem ser copiados e formatados em CSV para importação.</div>
+        </div>
+      </div>
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;margin-top:10px;font-size:12px;color:#1e40af">
+        ℹ️ <strong>Atenção ao formato:</strong> independente da fonte, o arquivo deve conter as colunas <strong>TICKER, PRECO, LPA e VPA</strong> como mínimo obrigatório. As demais colunas (DY, P/L, P/VP, Liquidez) são opcionais mas enriquecem a análise.
+      </div>
+    </div>
+  </div>
+
+  <!-- Seção 5 -->
+  <div id="s5" style="background:#fff;border-radius:10px;border:1px solid #e5e7eb;padding:20px 24px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <div style="background:#dbeafe;color:#1e40af;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700">5</div>
+      <div style="font-size:15px;font-weight:600">Como usar a Triagem</div>
+    </div>
+    <p style="font-size:13px;color:#374151;line-height:1.7;margin-bottom:12px">
+      A aba <strong>Triagem</strong> é o coração do aplicativo. Após importar os dados, todos os ativos são listados com seus indicadores e avaliados automaticamente contra os critérios de Graham.
+    </p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="padding:10px 12px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb;font-size:12px;color:#374151;line-height:1.5">
+        <strong>Sliders de filtro:</strong> Ajuste os critérios de MoS, P/L, P/VP, Liquidez e DY deslizando as barras. A tabela atualiza em tempo real mostrando quais ativos passam ou reprovam.
+      </div>
+      <div style="padding:10px 12px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb;font-size:12px;color:#374151;line-height:1.5">
+        <strong>Coluna MoS:</strong> A barra colorida indica o nível de desconto — verde escuro (MoS &gt; 50%), verde claro (33–50%) e vermelho (&lt; 33%).
+      </div>
+      <div style="padding:10px 12px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb;font-size:12px;color:#374151;line-height:1.5">
+        <strong>Coluna # (ranking):</strong> Os ativos aprovados são numerados por ordem de MoS — o nº 1 tem o maior desconto em relação ao Valor Intrínseco.
+      </div>
+      <div style="padding:10px 12px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb;font-size:12px;color:#374151;line-height:1.5">
+        <strong>Indicadores em vermelho:</strong> Quando um valor específico reprova no critério (ex: P/L acima do limite), ele aparece em vermelho para identificação rápida.
+      </div>
+    </div>
+  </div>
+
+  <!-- Seção 6 -->
+  <div id="s6" style="background:#fff;border-radius:10px;border:1px solid #e5e7eb;padding:20px 24px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <div style="background:#dbeafe;color:#1e40af;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700">6</div>
+      <div style="font-size:15px;font-weight:600">Seleção de carteira</div>
+    </div>
+    <p style="font-size:13px;color:#374151;line-height:1.7;margin-bottom:12px">O app oferece duas formas de montar sua carteira:</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div style="background:#eff6ff;border-radius:8px;padding:12px;border:1px solid #bfdbfe">
+        <div style="font-size:12px;font-weight:700;color:#1e40af;margin-bottom:6px">🤖 Automática (Top N por MoS)</div>
+        <div style="font-size:12px;color:#374151;line-height:1.5">Selecione 5, 10, 15, 20 ou qualquer número de ativos. O app escolhe automaticamente os N com maior Margem de Segurança entre os aprovados.</div>
+      </div>
+      <div style="background:#f5f3ff;border-radius:8px;padding:12px;border:1px solid #ddd6fe">
+        <div style="font-size:12px;font-weight:700;color:#7c3aed;margin-bottom:6px">✋ Manual (seleção individual)</div>
+        <div style="font-size:12px;color:#374151;line-height:1.5">Use os checkboxes na tabela para marcar individualmente os ativos que deseja incluir. Útil quando há critérios subjetivos além dos indicadores quantitativos.</div>
+      </div>
+    </div>
+    <div style="background:#fefce8;border:1px solid #fde047;border-radius:8px;padding:10px 14px;font-size:12px;color:#713f12">
+      💡 <strong>Dica:</strong> Após montar a carteira, clique em <strong>"Salvar carteira no histórico"</strong> para registrar a seleção com data, filtros e composição. O histórico é salvo automaticamente no seu navegador.
+    </div>
+  </div>
+
+  <!-- Seção 7 -->
+  <div id="s7" style="background:#fff;border-radius:10px;border:1px solid #e5e7eb;padding:20px 24px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <div style="background:#dbeafe;color:#1e40af;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700">7</div>
+      <div style="font-size:15px;font-weight:600">Calculadora de VI e MoS</div>
+    </div>
+    <p style="font-size:13px;color:#374151;line-height:1.7;margin-bottom:12px">
+      A <strong>Calculadora</strong> permite analisar qualquer ação individualmente, mesmo que não esteja no arquivo importado. Basta preencher o Preço, LPA e VPA para o app calcular o Valor Intrínseco e a Margem de Segurança instantaneamente.
+    </p>
+    <p style="font-size:13px;color:#374151;line-height:1.7">
+      Se os dados foram importados da Economatica, basta digitar o <strong>ticker</strong> no campo correspondente e todos os campos se preenchem automaticamente. O resultado mostra cada critério de Graham individualmente com ✓ aprovado ou ✗ reprovado.
+    </p>
+  </div>
+
+  <!-- Seção 8 -->
+  <div id="s8" style="background:#fff;border-radius:10px;border:1px solid #e5e7eb;padding:20px 24px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <div style="background:#dbeafe;color:#1e40af;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700">8</div>
+      <div style="font-size:15px;font-weight:600">Acompanhamento e benchmarks</div>
+    </div>
+    <p style="font-size:13px;color:#374151;line-height:1.7;margin-bottom:12px">
+      A aba <strong>Acompanhamento</strong> permite monitorar o desempenho de cada carteira salva ao longo do tempo, comparando com dois benchmarks:
+    </p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+      <div style="display:flex;gap:10px;align-items:center;padding:8px 12px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb">
+        <div style="width:12px;height:12px;border-radius:50%;background:#d97706;flex-shrink:0"></div>
+        <div style="font-size:12px;color:#374151;line-height:1.5"><strong>IBOV</strong> — Índice Bovespa, principal índice da Bolsa brasileira. Representa o desempenho médio das ações mais negociadas.</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;padding:8px 12px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb">
+        <div style="width:12px;height:12px;border-radius:50%;background:#15803d;flex-shrink:0"></div>
+        <div style="font-size:12px;color:#374151;line-height:1.5"><strong>CDI</strong> — taxa de referência da renda fixa brasileira, próxima à Selic. Representa o custo de oportunidade do investidor conservador.</div>
+      </div>
+    </div>
+    <p style="font-size:13px;color:#374151;line-height:1.7">
+      Clique em <strong>"Atualizar preços"</strong> para buscar cotações atuais via brapi.dev. Cada atualização registra um snapshot que alimenta o gráfico de evolução percentual acumulada desde a formação da carteira.
+    </p>
+  </div>
+
+  <!-- Rodapé tutorial -->
+  <div style="background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;padding:16px 20px;text-align:center">
+    <div style="font-size:12px;color:#6b7280;line-height:1.7">
+      <strong>Graham Value Screener</strong> · Produto técnico desenvolvido por Rodrigo Emiliano dos Santos<br>
+      Mestrado Profissional em Administração · IFMG Campus Formiga · 2026<br>
+      Orientador: Prof. Dr. Washington Santos da Silva · Coorientador: Prof. Dr. Lelis Pedro de Andrade
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:#9ca3af">
+      Graham, B.; Zweig, J. O Investidor Inteligente. HarperCollins, 2003. ·
+      Palazzo, L. et al. Value Investing no Mercado Brasileiro. 2018.
+    </div>
+
+  </div>
+
+</div>
+</div>
+
+<footer>
+  Graham Value Screener · Rodrigo Emiliano dos Santos · IFMG Campus Formiga · Mestrado Profissional em Administração 2026
+</footer>
+
+<script>
+// ─── DADOS DEMO ───
+const DEMO=[
+  {t:'ALLD3',p:5.8,dy:19.97,pl:1.63,pvp:0.36,liq:1.74,vpa:16.02,lpa:3.57},
+  {t:'AZZA3',p:19.05,dy:13,pl:4.73,pvp:0.49,liq:2.2,vpa:38.77,lpa:4.03},
+  {t:'BBDC3',p:15.36,dy:7.25,pl:6.93,pvp:0.91,liq:10.43,vpa:16.97,lpa:2.22},
+  {t:'BBDC4',p:17.69,dy:6.91,pl:7.98,pvp:1.04,liq:10.43,vpa:16.97,lpa:2.22},
+  {t:'BLAU3',p:10.12,dy:8.37,pl:9.68,pvp:1.03,liq:2.66,vpa:9.84,lpa:1.05},
+  {t:'BRAP3',p:19.62,dy:10.92,pl:14.1,pvp:1.01,liq:1.62,vpa:19.46,lpa:1.39},
+  {t:'BRSR3',p:16.86,dy:9.41,pl:4.02,pvp:0.6,liq:2.36,vpa:28.03,lpa:4.19},
+  {t:'BRSR6',p:14.4,dy:11.02,pl:3.43,pvp:0.51,liq:2.36,vpa:28.03,lpa:4.19},
+  {t:'CAMB3',p:9.66,dy:12.66,pl:5.92,pvp:1.28,liq:3.67,vpa:7.56,lpa:1.63},
+  {t:'CGRA4',p:25.06,dy:27.47,pl:7.04,pvp:0.67,liq:2.26,vpa:37.3,lpa:3.56},
+  {t:'CSED3',p:4.08,dy:11.9,pl:5.01,pvp:0.94,liq:1.53,vpa:4.36,lpa:0.81},
+  {t:'CSUD3',p:16.9,dy:13.92,pl:6.94,pvp:1.48,liq:1.22,vpa:11.44,lpa:2.43},
+  {t:'CYRE3',p:21.84,dy:12.5,pl:4.97,pvp:0.87,liq:3.84,vpa:25.1,lpa:4.39},
+  {t:'DEXP3',p:7.21,dy:7.75,pl:6.17,pvp:0.88,liq:3.65,vpa:8.15,lpa:1.17},
+  {t:'EVEN3',p:5.48,dy:13.96,pl:4.61,pvp:0.5,liq:4.79,vpa:10.97,lpa:1.19},
+  {t:'EZTC3',p:12.69,dy:11.96,pl:6.36,pvp:0.69,liq:8.52,vpa:18.33,lpa:2},
+  {t:'FESA4',p:6.57,dy:11.03,pl:12.32,pvp:0.71,liq:3.06,vpa:9.3,lpa:0.53},
+  {t:'GRND3',p:3.99,dy:36.99,pl:5.68,pvp:1.13,liq:2.55,vpa:3.52,lpa:0.7},
+  {t:'ISAE4',p:28.54,dy:6.48,pl:8.02,pvp:0.88,liq:4,vpa:32.52,lpa:3.56},
+  {t:'LPSB3',p:1.64,dy:13.54,pl:5.88,pvp:1.02,liq:1.48,vpa:1.61,lpa:0.28},
+  {t:'LREN3',p:13.55,dy:6.44,pl:9.13,pvp:1.32,liq:1.77,vpa:10.3,lpa:1.48},
+  {t:'MDNE3',p:27.4,dy:19.54,pl:5.64,pvp:1.35,liq:2.78,vpa:20.3,lpa:4.86},
+  {t:'MELK3',p:3.21,dy:16.35,pl:5.91,pvp:0.54,liq:2.6,vpa:5.9,lpa:0.54},
+  {t:'MTRE3',p:3.51,dy:11.58,pl:6.91,pvp:0.35,liq:2.68,vpa:9.98,lpa:0.51},
+  {t:'MTSA4',p:56.5,dy:7.4,pl:12.21,pvp:1.09,liq:4.91,vpa:51.88,lpa:4.63},
+  {t:'RANI3',p:7.85,dy:6.1,pl:8.92,pvp:1.23,liq:2.19,vpa:6.38,lpa:0.88},
+  {t:'RECV3',p:12.05,dy:8.5,pl:6.61,pvp:0.84,liq:2.18,vpa:14.3,lpa:1.82},
+  {t:'RIAA3',p:8.46,dy:28.92,pl:2.82,pvp:0.8,liq:1.6,vpa:10.59,lpa:3},
+  {t:'ROMI3',p:6.56,dy:8.23,pl:7.89,pvp:0.49,liq:2.27,vpa:13.33,lpa:0.83},
+  {t:'SCAR3',p:13.76,dy:51.6,pl:12.34,pvp:0.74,liq:1.78,vpa:18.54,lpa:1.11},
+  {t:'SHUL4',p:4.95,dy:12.71,pl:6.12,pvp:1.18,liq:2.6,vpa:4.2,lpa:0.81},
+  {t:'SYNE3',p:3.67,dy:11.42,pl:8.67,pvp:0.42,liq:1.3,vpa:8.81,lpa:0.42},
+  {t:'TRIS3',p:4.18,dy:23.56,pl:4.98,pvp:0.69,liq:2.97,vpa:6.09,lpa:0.84},
+  {t:'VITT3',p:3.46,dy:8.17,pl:8.43,pvp:0.87,liq:2.65,vpa:3.98,lpa:0.41},
+  {t:'VLID3',p:17.71,dy:8.5,pl:5.95,pvp:0.85,liq:2.32,vpa:20.95,lpa:2.98},
+];
+
+// ─── ESTADO GLOBAL ───
+let DATA=[],mosMin=0.33,plMax=15,pvpMax=1.5,liqMin=1.22,dyMin=0,cartSize=0;
+let selecaoManual=new Set(); // tickers selecionados manualmente
+let carteiraSelecionadaIdx=0;
+let historico=[];
+let precoAtual={};  // ticker -> {preco, var, ts}
+let graficoChart=null;
+
+// ─── LOCALSTORAGE ───
+const LS_KEY='graham_screener_historico_v2';
+function salvarLS(){try{localStorage.setItem(LS_KEY,JSON.stringify(historico));}catch(e){}}
+function carregarLS(){
+  try{
+    const raw=localStorage.getItem(LS_KEY);
+    if(raw) historico=JSON.parse(raw);
+  }catch(e){historico=[];}
+}
+
+// ─── INIT ───
+carregarLS();
+renderHistorico();
+
+// ─── CORE ───
+function enrich(d){
+  const vi=Math.sqrt(22.5*(d.lpa||0)*(d.vpa||0));
+  const mos=vi>0?(vi-d.p)/vi:0;
+  return {...d,vi,mos};
+}
+function passes(d){
+  const dyOk=dyMin===0||(d.dy>=dyMin&&!isNaN(d.dy));
+  return d.mos>=mosMin&&d.pl<=plMax&&!isNaN(d.pl)&&d.pvp<=pvpMax&&!isNaN(d.pvp)&&d.liq>=liqMin&&!isNaN(d.liq)&&d.mos>0&&dyOk;
+}
+function getSelected(){
+  // Se há seleção manual, usa ela
+  if(selecaoManual.size>0){
+    return DATA.filter(d=>selecaoManual.has(d.t)).sort((a,b)=>b.mos-a.mos);
+  }
+  // Senão usa seleção automática por tamanho
+  const approved=DATA.filter(passes).sort((a,b)=>b.mos-a.mos);
+  return cartSize>0?approved.slice(0,cartSize):approved;
+}
+
+function toggleManual(ticker,checked){
+  if(checked) selecaoManual.add(ticker);
+  else selecaoManual.delete(ticker);
+  renderAll();
+}
+
+function toggleAll(checked){
+  if(checked){
+    DATA.filter(passes).forEach(d=>selecaoManual.add(d.t));
+  } else {
+    selecaoManual.clear();
+  }
+  renderAll();
+}
+
+function limparManual(){
+  selecaoManual.clear();
+  renderAll();
+}
+function setSize(n,btn){
+  cartSize=n;
+  document.querySelectorAll('.size-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('custom-size').value='';
+  renderAll();
+}
+function setCustomSize(v){
+  const n=parseInt(v);
+  if(n>0){cartSize=n;document.querySelectorAll('.size-btn').forEach(b=>b.classList.remove('active'));renderAll();}
+}
+function updateFilter(){
+  mosMin=+document.getElementById('sl-mos').value/100;
+  plMax=+document.getElementById('sl-pl').value;
+  pvpMax=+document.getElementById('sl-pvp').value;
+  liqMin=+document.getElementById('sl-liq').value;
+  dyMin=+document.getElementById('sl-dy').value;
+  document.getElementById('rv-mos').textContent=Math.round(mosMin*100)+'%';
+  document.getElementById('rv-pl').textContent=plMax+'×';
+  document.getElementById('rv-pvp').textContent=(+pvpMax).toFixed(1)+'×';
+  document.getElementById('rv-liq').textContent=(+liqMin).toFixed(2);
+  document.getElementById('rv-dy').textContent=(+dyMin).toFixed(1)+'%';
+  renderAll();
+}
+function setSrt(col){window._srt=col;renderTri();}
+function renderAll(){updateSizeInfo();renderTri();renderCart();}
+function updateSizeInfo(){
+  const approved=DATA.filter(passes).length;
+  const sel=getSelected().length;
+  const el=document.getElementById('size-info');
+  const elManual=document.getElementById('info-manual');
+  const btnManual=document.getElementById('btn-limpar-manual');
+  if(!DATA.length){if(el)el.textContent='';return;}
+
+  // Info da seleção manual
+  if(selecaoManual.size>0){
+    if(elManual) elManual.textContent=`${selecaoManual.size} ativo${selecaoManual.size!==1?'s':''} selecionado${selecaoManual.size!==1?'s':''} manualmente`;
+    if(btnManual) btnManual.style.display='inline-flex';
+  } else {
+    if(elManual) elManual.textContent='';
+    if(btnManual) btnManual.style.display='none';
+  }
+
+  if(!el) return;
+  if(selecaoManual.size>0) el.textContent='Modo: seleção manual ativa';
+  else if(cartSize===0) el.textContent='Mostrando todos os '+approved+' aprovados';
+  else if(approved<cartSize) el.textContent=`Só ${approved} disponíve${approved!==1?'is':'l'} (pediu ${cartSize})`;
+  else el.textContent=`Top ${sel} por MoS entre ${approved} aprovados`;
+}
+
+// ─── TRIAGEM ───
+function renderTri(){
+  if(!DATA.length){document.getElementById('tri-empty').style.display='block';return;}
+  document.getElementById('tri-empty').style.display='none';
+  const sel=getSelected(),selSet=new Set(sel.map(d=>d.t));
+  const approved=DATA.filter(passes);
+  document.getElementById('c-total').textContent=DATA.length;
+  document.getElementById('c-pass').textContent=approved.length;
+  document.getElementById('c-sel').textContent=sel.length;
+  if(sel.length){
+    document.getElementById('c-avgmos').textContent=(sel.reduce((s,d)=>s+d.mos,0)/sel.length*100).toFixed(1)+'%';
+    const wd=sel.filter(d=>!isNaN(d.dy));
+    document.getElementById('c-avgdy').textContent=wd.length?(wd.reduce((s,d)=>s+d.dy,0)/wd.length).toFixed(1)+'%':'—';
+  }else{document.getElementById('c-avgmos').textContent='—';document.getElementById('c-avgdy').textContent='—';}
+  const q=(document.getElementById('srch').value||'').toLowerCase();
+  const fst=document.getElementById('fst').value;
+  const srt=window._srt||'mos';
+  const km={ticker:'t',mos:'mos',pl:'pl',dy:'dy',vi:'vi',pvp:'pvp',liq:'liq',preco:'p'};
+  let rows=DATA.filter(d=>{
+    if(q&&!d.t.toLowerCase().includes(q)) return false;
+    if(fst==='pass'&&!passes(d)) return false;
+    if(fst==='sel'&&!selSet.has(d.t)) return false;
+    if(fst==='manual'&&!selecaoManual.has(d.t)) return false;
+    if(fst==='fail'&&passes(d)) return false;
+    return true;
+  });
+  rows.sort((a,b)=>srt==='ticker'?a.t.localeCompare(b.t):srt==='pl'||srt==='pvp'?a[km[srt]]-b[km[srt]]:b[km[srt]||'mos']-a[km[srt]||'mos']);
+  const chk=f=>`<span class="${f?'tick':'cross'}">${f?'✓':'✗'}</span>`;
+  const bar=mos=>{const w=Math.min(mos*100,100).toFixed(0);const c=mos>=0.5?'#15803d':mos>=0.33?'#65a30d':'#dc2626';return `<div class="mos-wrap"><span style="font-size:11px;min-width:34px">${(mos*100).toFixed(1)}%</span><div class="mos-bar"><div class="mos-fill" style="width:${w}%;background:${c}"></div></div></div>`;};
+  // atualizar chk-all
+  const allPass=DATA.filter(passes);
+  const allChecked=allPass.length>0&&allPass.every(d=>selecaoManual.has(d.t));
+  const chkAll=document.getElementById('chk-all');
+  if(chkAll) chkAll.checked=allChecked;
+
+  let rank=0;
+  document.getElementById('tbody-tri').innerHTML=rows.map(d=>{
+    const inSel=selSet.has(d.t),isPass=passes(d),inManual=selecaoManual.has(d.t);
+    if(isPass) rank++;
+    const rb=inSel?`<span class="rank-badge top">${rank}</span>`:`<span class="rank-badge">${isPass?rank:'—'}</span>`;
+    let badge='';
+    if(inManual) badge='<span class="badge" style="background:#7c3aed;color:#fff">✓ Manual</span>';
+    else if(inSel) badge='<span class="badge sel">Na carteira</span>';
+    else if(isPass) badge='<span class="badge pass">Aprovado</span>';
+    else badge='<span class="badge fail">Reprovado</span>';
+    return `<tr class="${inManual?'sel-row':inSel?'sel-row':''}">
+      <td>${rb}</td>
+      <td><input type="checkbox" ${inManual?'checked':''} ${!isPass?'disabled':''} onchange="toggleManual('${d.t}',this.checked)" style="cursor:${isPass?'pointer':'not-allowed'};accent-color:#7c3aed"></td>
+      <td style="font-weight:600">${d.t}</td>
+      <td>R$ ${d.p.toFixed(2)}</td>
+      <td>${isNaN(d.dy)?'—':d.dy.toFixed(1)+'%'}</td>
+      <td style="color:${d.pl>plMax?'#dc2626':'inherit'}">${isNaN(d.pl)?'—':d.pl.toFixed(2)}</td>
+      <td style="color:${d.pvp>pvpMax?'#dc2626':'inherit'}">${isNaN(d.pvp)?'—':d.pvp.toFixed(2)}</td>
+      <td style="color:${d.liq<liqMin?'#dc2626':'inherit'}">${isNaN(d.liq)?'—':d.liq.toFixed(2)}</td>
+      <td>R$ ${d.vi.toFixed(2)}</td><td>${bar(d.mos)}</td><td>${badge}</td>
+      <td>${chk(d.pl<=plMax&&!isNaN(d.pl))}</td>
+      <td>${chk(d.pvp<=pvpMax&&!isNaN(d.pvp))}</td>
+      <td>${chk(d.liq>=liqMin&&!isNaN(d.liq))}</td>
+      <td>${chk(d.mos>=mosMin)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── CARTEIRA ───
+function renderCart(){
+  const sel=getSelected();
+  document.getElementById('cart-n').textContent=sel.length;
+  if(!sel.length){
+    document.getElementById('cart-empty').style.display='block';
+    ['cart-vi','cart-mos','cart-dy','cart-pl'].forEach(id=>document.getElementById(id).textContent='—');
+    document.getElementById('tbody-cart').innerHTML='';return;
+  }
+  document.getElementById('cart-empty').style.display='none';
+  const avg=(arr,f)=>arr.filter(d=>!isNaN(f(d))).reduce((s,d)=>s+f(d),0)/arr.filter(d=>!isNaN(f(d))).length;
+  document.getElementById('cart-vi').textContent='R$ '+avg(sel,d=>d.vi).toFixed(2);
+  document.getElementById('cart-mos').textContent=(avg(sel,d=>d.mos)*100).toFixed(1)+'%';
+  document.getElementById('cart-dy').textContent=avg(sel,d=>d.dy).toFixed(1)+'%';
+  document.getElementById('cart-pl').textContent=avg(sel,d=>d.pl).toFixed(2);
+  const peso=(100/sel.length).toFixed(1)+'%';
+  const bar=mos=>{const w=Math.min(mos*100,100).toFixed(0);return `<div class="mos-wrap"><span style="font-size:11px;min-width:34px">${(mos*100).toFixed(1)}%</span><div class="mos-bar"><div class="mos-fill" style="width:${w}%;background:#15803d"></div></div></div>`;};
+  document.getElementById('tbody-cart').innerHTML=sel.map((d,i)=>`<tr>
+    <td><span class="rank-badge top">${i+1}</span></td>
+    <td style="font-weight:600">${d.t}</td>
+    <td>R$ ${d.p.toFixed(2)}</td>
+    <td>${isNaN(d.dy)?'—':d.dy.toFixed(1)+'%'}</td>
+    <td>${d.pl.toFixed(2)}</td><td>${d.pvp.toFixed(2)}</td><td>${d.liq.toFixed(2)}</td>
+    <td>R$ ${d.vi.toFixed(2)}</td><td>${bar(d.mos)}</td>
+    <td style="color:#6b7280">${peso}</td>
+  </tr>`).join('');
+}
+
+// ─── SALVAR / HISTÓRICO ───
+function salvarCarteira(){
+  if(!DATA.length){alert('Carregue os dados primeiro.');return;}
+  const sel=getSelected();
+  if(!sel.length){alert('Nenhum ativo selecionado.');return;}
+  const now=new Date();
+  const snapshot={
+    id:Date.now(),
+    data:now.toLocaleDateString('pt-BR'),
+    dataISO:now.toISOString().split('T')[0],
+    hora:now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+    n:sel.length,
+    ativos:sel.map(d=>({ticker:d.t,precoBase:d.p,vi:d.vi,mos:d.mos})),
+    avgMos:(sel.reduce((s,d)=>s+d.mos,0)/sel.length*100).toFixed(1),
+    criterio:cartSize===0?'Todos aprovados':'Top '+cartSize+' por MoS',
+    filtros:{mos:Math.round(mosMin*100),pl:plMax,pvp:(+pvpMax).toFixed(1),liq:(+liqMin).toFixed(2)},
+    snapshots:[] // registro de preços ao longo do tempo
+  };
+  historico.unshift(snapshot);
+  salvarLS();
+  renderHistorico();
+  renderAcompanhamento();
+  showTab('historico',document.querySelectorAll('.nav button')[5]);
+}
+function limparHistorico(){
+  if(!confirm('Apagar todo o histórico? Esta ação não pode ser desfeita.')) return;
+  historico=[];salvarLS();renderHistorico();renderAcompanhamento();
+}
+function renderHistorico(){
+  const el=document.getElementById('hist-list');
+  const emp=document.getElementById('hist-empty');
+  if(!historico.length){emp.style.display='block';el.innerHTML='';return;}
+  emp.style.display='none';
+  el.innerHTML=historico.map((h,i)=>`
+    <div class="hist-item" style="border-left:3px solid ${i===carteiraSelecionadaIdx?'#1F4E79':'#e5e7eb'}">
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:13px">
+          Carteira #${historico.length-i} — ${h.data} às ${h.hora}
+          ${i===carteiraSelecionadaIdx?'<span style="font-size:10px;background:#dbeafe;color:#1e40af;padding:2px 7px;border-radius:20px;margin-left:6px">Monitorando</span>':''}
+        </div>
+        <div style="font-size:11px;color:#6b7280;margin-top:4px">${h.n} ativos (${h.criterio}): ${h.ativos.map(a=>a.ticker).join(', ')}</div>
+        <div style="font-size:10px;color:#9ca3af;margin-top:4px">Filtros: MoS ≥ ${h.filtros.mos}% | P/L ≤ ${h.filtros.pl} | P/VP ≤ ${h.filtros.pvp} | Liq ≥ ${h.filtros.liq}</div>
+        <div style="font-size:10px;color:${h.snapshots&&h.snapshots.length?'#15803d':'#9ca3af'};margin-top:4px">
+          ${h.snapshots&&h.snapshots.length?h.snapshots.length+' atualização(ões) de preço registrada(s)':'Sem atualizações de preço ainda'}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;margin-left:16px">
+        <div style="font-weight:600;color:#15803d;font-size:13px">MoS: ${h.avgMos}%</div>
+        <button class="btn btn-primary btn-sm" onclick="acompanharCarteira(${i})">📊 Acompanhar</button>
+        <button class="btn btn-danger btn-sm" onclick="removerCarteira(${i})">✕ Remover</button>
+      </div>
+    </div>`).join('');
+}
+function removerCarteira(i){
+  if(!confirm('Remover esta carteira do histórico?')) return;
+  historico.splice(i,1);salvarLS();renderHistorico();renderAcompanhamento();
+}
+
+// ─── ACOMPANHAMENTO MULTI-CARTEIRA ───
+
+function renderAcompanhamento(){
+  const sem=document.getElementById('acomp-sem-carteira');
+  const content=document.getElementById('acomp-content');
+  if(!historico.length){sem.style.display='block';content.style.display='none';return;}
+  sem.style.display='none';content.style.display='block';
+  atualizarSeletorCarteiras();
+  renderTabelaAcomp();
+  atualizarGrafico();
+}
+
+function atualizarSeletorCarteiras(){
+  const sel=document.getElementById('select-carteira');
+  if(!sel) return;
+  sel.innerHTML=historico.map((h,i)=>
+    `<option value="${i}" ${i===carteiraSelecionadaIdx?'selected':''}>Carteira #${historico.length-i} — ${h.data} · ${h.n} ativos (${h.criterio}) · MoS ${h.avgMos}%</option>`
+  ).join('');
+  if(carteiraSelecionadaIdx>=historico.length) carteiraSelecionadaIdx=0;
+  atualizarInfoCarteira();
+}
+
+function selecionarCarteira(idx){
+  carteiraSelecionadaIdx=parseInt(idx);
+  precoAtual={};
+  atualizarInfoCarteira();
+  renderTabelaAcomp();
+  ['ibov-preco','ibov-var','ibov-base','cdi-val','cdi-base','cart-perf','cart-perf-base'].forEach(id=>{
+    const el=document.getElementById(id); if(el){el.textContent='—';el.className=el.className;}
+  });
+  document.getElementById('ultima-atualizacao').textContent='';
+  atualizarGrafico();
+}
+
+function atualizarInfoCarteira(){
+  const cart=historico[carteiraSelecionadaIdx];
+  if(!cart) return;
+  const nSnaps=cart.snapshots?cart.snapshots.length:0;
+  const el_n=document.getElementById('acomp-nsnaps');
+  const el_d=document.getElementById('acomp-primeira-data');
+  const el_i=document.getElementById('acomp-info-carteira');
+  if(el_n) el_n.textContent=nSnaps;
+  if(el_d) el_d.textContent=nSnaps?`Primeiro registro: ${new Date(cart.snapshots[0].ts).toLocaleDateString('pt-BR')}`:'Nenhuma atualização ainda';
+  if(el_i) el_i.textContent=`Ativos: ${cart.ativos.map(a=>a.ticker).join(', ')}`;
+}
+
+function renderTabelaAcomp(){
+  const cart=historico[carteiraSelecionadaIdx];
+  if(!cart) return;
+  document.getElementById('acomp-cards').innerHTML=cart.ativos.map(a=>{
+    const atual=precoAtual[a.ticker];
+    const precoNow=atual?atual.preco:null;
+    const varPct=precoNow?((precoNow-a.precoBase)/a.precoBase*100):null;
+    const cor=varPct===null?'#1a1a1a':varPct>=0?'#15803d':'#dc2626';
+    return `<div class="acomp-card">
+      <div class="ticker">${a.ticker}</div>
+      <div class="preco" style="color:${cor}">${precoNow?'R$ '+precoNow.toFixed(2):'—'}</div>
+      <div class="var ${varPct===null?'':varPct>=0?'pos':'neg'}">${varPct===null?'Clique em Atualizar':(varPct>=0?'▲ +':'▼ ')+varPct.toFixed(2)+'%'}</div>
+      <div class="base">Base: R$ ${a.precoBase.toFixed(2)}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('tbody-acomp').innerHTML=cart.ativos.map(a=>{
+    const atual=precoAtual[a.ticker];
+    const precoNow=atual?atual.preco:null;
+    const varPct=precoNow?((precoNow-a.precoBase)/a.precoBase*100):null;
+    const varR=precoNow?(precoNow-a.precoBase):null;
+    const cor=varPct===null?'inherit':varPct>=0?'#15803d':'#dc2626';
+    return `<tr>
+      <td style="font-weight:600">${a.ticker}</td>
+      <td>R$ ${a.precoBase.toFixed(2)}</td>
+      <td>${precoNow?'R$ '+precoNow.toFixed(2):'—'}</td>
+      <td style="color:${cor};font-weight:500">${varPct===null?'—':(varPct>=0?'▲ +':'▼ ')+varPct.toFixed(2)+'%'}</td>
+      <td style="color:${cor}">${varR===null?'—':(varR>=0?'+ R$ ':' R$ ')+Math.abs(varR).toFixed(2)}</td>
+      <td style="color:#9ca3af;font-size:11px">${atual?atual.ts:'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── BUSCAR PREÇOS VIA BRAPI ───
+// ─── BUSCA DE PREÇOS — BRAPI.DEV ───
+const BRAPI_TOKEN='tPUUxcMTR9QUCiVYA96ibg';
+const BRAPI_URL='https://brapi.dev/api/quote';
+
+async function buscarPrecos(){
+  const btn=document.getElementById('btn-atualizar');
+  if(!historico.length){alert('Salve uma carteira primeiro.');return;}
+  const cart=historico[carteiraSelecionadaIdx];
+  if(!cart){alert('Carteira não encontrada.');return;}
+  const tickers=cart.ativos.map(a=>a.ticker);
+
+  btn.disabled=true;btn.textContent='⏳ Buscando...';
+  const statusEl=document.getElementById('status-acomp');
+  const msgEl=document.getElementById('msg-acomp');
+  statusEl.style.display='flex';
+  statusEl.className='status-bar warn';
+  document.getElementById('dot-acomp').className='dot warn';
+  msgEl.textContent='Buscando preços via brapi.dev...';
+
+  const now=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  let ibovPontos=null;
+  let atualizados=0;
+  const erros=[];
+
+  try{
+    // ── 1. Um ticker por vez (limite do plano gratuito brapi) ──
+    msgEl.textContent=`Buscando preços... 0/${tickers.length} ativos`;
+    for(let i=0;i<tickers.length;i++){
+      const ticker=tickers[i];
+      try{
+        const resp=await fetch(`${BRAPI_URL}/${ticker}?token=${BRAPI_TOKEN}`);
+        const json=await resp.json();
+        if(json.results&&json.results[0]&&json.results[0].regularMarketPrice){
+          precoAtual[ticker]={
+            preco:json.results[0].regularMarketPrice,
+            var:json.results[0].regularMarketChangePercent||0,
+            ts:now
+          };
+          atualizados++;
+        } else {
+          erros.push(ticker);
+        }
+      }catch(e){erros.push(ticker);}
+      msgEl.textContent=`Buscando preços... ${atualizados+erros.length}/${tickers.length} ativos`;
+      // Pausa de 200ms para não sobrecarregar a API
+      await new Promise(r=>setTimeout(r,200));
+    }
+
+    // ── 2. IBOV ──
+    try{
+      const respIbov=await fetch(`${BRAPI_URL}/%5EBVSP?token=${BRAPI_TOKEN}`);
+      const jsonIbov=await respIbov.json();
+      if(jsonIbov.results&&jsonIbov.results[0]){
+        ibovPontos=jsonIbov.results[0].regularMarketPrice;
+        const ibovBase=cart.ibovBase||ibovPontos;
+        if(!cart.ibovBase){cart.ibovBase=ibovPontos;salvarLS();}
+        const ibovVar=((ibovPontos-ibovBase)/ibovBase*100);
+        document.getElementById('ibov-preco').textContent=ibovPontos.toLocaleString('pt-BR')+' pts';
+        document.getElementById('ibov-var').innerHTML=
+          `<span style="color:${ibovVar>=0?'#15803d':'#dc2626'}">${ibovVar>=0?'▲':'▼'} ${ibovVar.toFixed(2)}%</span>`;
+        document.getElementById('ibov-base').textContent=`Base: ${ibovBase.toLocaleString('pt-BR')} pts (${cart.data})`;
+        precoAtual['__IBOV__']={var:ibovVar,preco:ibovPontos};
+      }
+    }catch(e){console.warn('Erro IBOV:',e);}
+
+  }catch(err){
+    statusEl.className='status-bar err';
+    document.getElementById('dot-acomp').className='dot empty';
+    msgEl.textContent='Erro ao buscar preços: '+err.message;
+    btn.disabled=false;btn.textContent='🔄 Atualizar preços';
+    return;
+  }
+
+  // ── 3. CDI (Selic mai/2026) ──
+  const cdiAnual=14.75;
+  const dataBase=new Date(cart.dataISO);
+  const hoje=new Date();
+  const diasUteis=Math.max(1,Math.round((hoje-dataBase)/(1000*60*60*24)*0.7));
+  const cdiAcum=((Math.pow(1+cdiAnual/100,diasUteis/252)-1)*100);
+  document.getElementById('cdi-val').textContent=cdiAcum.toFixed(2)+'%';
+  document.getElementById('cdi-base').textContent=`Selic ${cdiAnual}% a.a. · ${diasUteis} dias úteis desde ${cart.data}`;
+
+  // ── 4. Performance da carteira ──
+  const comPreco=cart.ativos.filter(a=>precoAtual[a.ticker]);
+  if(comPreco.length){
+    const varCart=comPreco.reduce((s,a)=>s+(precoAtual[a.ticker].preco-a.precoBase)/a.precoBase,0)/comPreco.length*100;
+    document.getElementById('cart-perf').textContent=(varCart>=0?'+':'')+varCart.toFixed(2)+'%';
+    document.getElementById('cart-perf').className='val '+(varCart>=0?'g':'r');
+    document.getElementById('cart-perf-base').textContent=`Retorno médio EW desde ${cart.data} (${comPreco.length}/${cart.ativos.length} ativos)`;
+  }
+
+  // ── 5. Snapshot ──
+  const snap={ts:new Date().toISOString(),precos:{}};
+  tickers.forEach(t=>{if(precoAtual[t]) snap.precos[t]=precoAtual[t].preco;});
+  snap.ibov=ibovPontos;snap.cdi=cdiAcum;
+  cart.snapshots=cart.snapshots||[];
+  cart.snapshots.push(snap);
+  salvarLS();
+
+  // ── 6. Status ──
+  document.getElementById('ultima-atualizacao').textContent='Última atualização: '+now;
+  statusEl.className='status-bar';
+  document.getElementById('dot-acomp').className='dot';
+  const msgErr=erros.length?` · Não encontrados: ${[...new Set(erros)].join(', ')}`:'';
+  msgEl.textContent=`${atualizados} ativo${atualizados!==1?'s':''} atualizado${atualizados!==1?'s':''} · IBOV atualizado · Fonte: brapi.dev${msgErr}`;
+  renderTabelaAcomp();
+  atualizarGrafico();
+
+  btn.disabled=false;btn.textContent='🔄 Atualizar preços';
+}
+// ─── GRÁFICO ───
+function atualizarGrafico(){
+  const cart=historico[carteiraSelecionadaIdx];
+  if(!cart||!cart.snapshots||cart.snapshots.length<1){if(graficoChart){graficoChart.destroy();graficoChart=null;}return;}
+
+  const snaps=cart.snapshots;
+  const labels=snaps.map(s=>new Date(s.ts).toLocaleDateString('pt-BR'));
+
+  // Retorno da carteira EW em cada snap
+  const cartData=snaps.map(s=>{
+    const vars=cart.ativos.map(a=>{
+      const p=s.precos[a.ticker];
+      return p?((p-a.precoBase)/a.precoBase*100):null;
+    }).filter(v=>v!==null);
+    return vars.length?+(vars.reduce((a,b)=>a+b,0)/vars.length).toFixed(2):0;
+  });
+
+  // IBOV
+  const ibovBase=cart.ibovBase;
+  const ibovData=snaps.map(s=>s.ibov&&ibovBase?+((s.ibov-ibovBase)/ibovBase*100).toFixed(2):null);
+
+  // CDI
+  const cdiData=snaps.map(s=>s.cdi?+s.cdi.toFixed(2):null);
+
+  const ctx=document.getElementById('grafico-perf').getContext('2d');
+  if(graficoChart) graficoChart.destroy();
+  graficoChart=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        {label:'Carteira Graham (EW)',data:cartData,borderColor:'#1F4E79',backgroundColor:'rgba(31,78,121,.08)',borderWidth:2.5,pointRadius:4,tension:.3},
+        {label:'IBOV',data:ibovData,borderColor:'#d97706',backgroundColor:'rgba(217,119,6,.06)',borderWidth:2,pointRadius:3,tension:.3},
+        {label:'CDI acumulado',data:cdiData,borderColor:'#15803d',backgroundColor:'rgba(21,128,61,.06)',borderWidth:2,borderDash:[5,3],pointRadius:3,tension:.3},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y>=0?'+':''}${ctx.parsed.y?.toFixed(2)}%`}}
+      },
+      scales:{
+        x:{grid:{color:'#f3f4f6'},ticks:{font:{size:11},color:'#9ca3af'}},
+        y:{grid:{color:'#f3f4f6'},ticks:{font:{size:11},color:'#9ca3af',callback:v=>(v>=0?'+':'')+v+'%'},
+          title:{display:true,text:'Retorno acumulado (%)',font:{size:11},color:'#6b7280'}}
+      }
+    }
+  });
+}
+
+// ─── CALCULADORA ───
+function calcVI(){
+  const p=parseFloat(document.getElementById('cp').value);
+  const lpa=parseFloat(document.getElementById('cl').value);
+  const vpa=parseFloat(document.getElementById('cv').value);
+  const pl=parseFloat(document.getElementById('cpl').value);
+  const pvp=parseFloat(document.getElementById('cpvp').value);
+  const liq=parseFloat(document.getElementById('cliq').value);
+  if(isNaN(p)||isNaN(lpa)||isNaN(vpa)||lpa<=0||vpa<=0){
+    document.getElementById('calc-res').style.display='none';
+    document.getElementById('calc-empty').style.display='block';return;
+  }
+  document.getElementById('calc-empty').style.display='none';
+  document.getElementById('calc-res').style.display='block';
+  const vi=Math.sqrt(22.5*lpa*vpa),mos=(vi-p)/vi;
+  const chk=ok=>`<span class="${ok?'tick':'cross'}">${ok?'✓ Aprovado':'✗ Reprovado'}</span>`;
+  document.getElementById('rvi').textContent='R$ '+vi.toFixed(2);
+  document.getElementById('rpreco').textContent='R$ '+p.toFixed(2);
+  document.getElementById('rmos').innerHTML=`<span style="font-weight:600;color:${mos>=0.33?'#15803d':'#dc2626'}">${(mos*100).toFixed(1)}%</span>`;
+  document.getElementById('rpl').innerHTML=isNaN(pl)?'—':chk(pl<=15);
+  document.getElementById('rpvp').innerHTML=isNaN(pvp)?'—':chk(pvp<=1.5);
+  document.getElementById('rliq').innerHTML=isNaN(liq)?'—':chk(liq>=1.22);
+  document.getElementById('rmosok').innerHTML=chk(mos>=0.33);
+  const tudo=mos>=0.33&&(isNaN(pl)||pl<=15)&&(isNaN(pvp)||pvp<=1.5)&&(isNaN(liq)||liq>=1.22);
+  document.getElementById('rfinal').innerHTML=`<span style="color:${tudo?'#15803d':'#dc2626'};font-weight:600">${tudo?'✓ Passa em todos os filtros de Graham':'✗ Não passa em todos os filtros'}</span>`;
+}
+function autoFill(){
+  const found=DATA.find(d=>d.t===document.getElementById('ct').value.toUpperCase());
+  if(found){
+    document.getElementById('cp').value=found.p;document.getElementById('cl').value=found.lpa;
+    document.getElementById('cv').value=found.vpa;document.getElementById('cpl').value=isNaN(found.pl)?'':found.pl;
+    document.getElementById('cpvp').value=isNaN(found.pvp)?'':found.pvp;document.getElementById('cliq').value=isNaN(found.liq)?'':found.liq;
+    document.getElementById('cdy').value=isNaN(found.dy)?'':found.dy;calcVI();
+  }
+}
+
+// ─── IMPORTAÇÃO ───
+function parseNum(s){if(s==null||s===''||s==='-') return NaN;return parseFloat(String(s).replace(',','.').replace(/[^\d.\-]/g,''));}
+function handleFile(file){
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const lines=e.target.result.split(/\r?\n/).filter(l=>l.trim());
+      if(!lines.length) throw new Error('Arquivo vazio');
+      const sep=lines[0].includes('\t')?'\t':lines[0].includes(';')?';':',';
+      const headers=lines[0].split(sep).map(h=>h.trim().toUpperCase().replace(/["'\r]/g,''));
+      const idx={};
+      const map={TICKER:['TICKER','ATIVO','PAPEL','CÓDIGO','CODIGO'],PRECO:['PRECO','PREÇO','PRICE','ÚLTIMO','ULTIMO','COTAÇÃO','COTACAO'],
+        DY:['DY','DIVIDEND YIELD'],PL:['P/L','PL'],PVP:['P/VP','PVP','P/VPA'],
+        LIQ:['LIQ. CORRENTE','LIQUIDEZ CORRENTE','LIQ CORRENTE','LIQUIDEZ','LIQ.CORRENTE'],
+        VPA:['VPA','VALOR PATRIMONIAL'],LPA:['LPA','LUCRO POR AÇÃO','LUCRO POR ACAO']};
+      for(const [k,aliases] of Object.entries(map)) for(const a of aliases){const i=headers.findIndex(h=>h.includes(a));if(i>=0){idx[k]=i;break;}}
+      if(idx.TICKER===undefined||idx.LPA===undefined||idx.VPA===undefined) throw new Error('Colunas obrigatórias não encontradas: TICKER, LPA e VPA.');
+      DATA=lines.slice(1).map(line=>{
+        const c=line.split(sep).map(c=>c.trim().replace(/["'\r]/g,''));
+        return{t:c[idx.TICKER]||'',p:parseNum(c[idx.PRECO]),dy:parseNum(c[idx.DY]),pl:parseNum(c[idx.PL]),
+          pvp:parseNum(c[idx.PVP]),liq:parseNum(c[idx.LIQ]),vpa:parseNum(c[idx.VPA]),lpa:parseNum(c[idx.LPA])};
+      }).filter(d=>d.t&&!isNaN(d.p)&&!isNaN(d.lpa)&&!isNaN(d.vpa)&&d.lpa>0&&d.vpa>0).map(enrich);
+      if(!DATA.length) throw new Error('Nenhum ativo válido encontrado.');
+      onDataLoaded(`"${file.name}" importado — ${DATA.length} ativos processados`);
+      showTab('triagem',document.querySelectorAll('.nav button')[1]);
+    }catch(err){
+      const bar=document.getElementById('import-log');
+      bar.style.display='flex';bar.className='status-bar err';
+      document.getElementById('dot-s').className='dot empty';
+      document.getElementById('log-msg').textContent='Erro: '+err.message;
+    }
+  };
+  reader.readAsText(file,'UTF-8');
+}
+function handleDrop(e){e.preventDefault();document.getElementById('dropzone').classList.remove('drag');const f=e.dataTransfer.files[0];if(f) handleFile(f);}
+function loadDemo(){DATA=DEMO.map(enrich);onDataLoaded('Demonstração carregada — 35 ativos (Economatica, mai/2026)');showTab('triagem',document.querySelectorAll('.nav button')[1]);}
+function onDataLoaded(msg){
+  const bar=document.getElementById('import-log');
+  bar.style.display='flex';bar.className='status-bar';
+  document.getElementById('dot-s').className='dot';
+  document.getElementById('log-msg').textContent=msg;
+  document.getElementById('chip-n').textContent=DATA.length+' ativos carregados';
+  document.getElementById('chip-data').textContent='Atualizado: '+new Date().toLocaleDateString('pt-BR');
+  document.getElementById('tl').innerHTML=DATA.map(d=>`<option value="${d.t}">`).join('');
+  renderAll();
+}
+
+
+// ─── NAVEGAÇÃO ───
+function acompanharCarteira(idx){
+  carteiraSelecionadaIdx=idx;
+  precoAtual={};
+  renderHistorico();
+  showTab('acompanhamento',document.querySelectorAll('.nav button')[4]);
+}
+
+function showTab(id,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(id==='acompanhamento') renderAcompanhamento();
+  if(id==='historico') renderHistorico();
+}
+
+// Inicializar acompanhamento
+renderAcompanhamento();
+</script>
+</body>
+</html>
