@@ -150,8 +150,10 @@ footer{text-align:center;padding:20px;font-size:11px;color:#9ca3af;margin-top:20
       <span class="tag">P/L</span><span class="tag">P/VP</span><span class="tag">LIQ. CORRENTE</span>
       <span class="tag">VPA</span><span class="tag">LPA</span>
     </div>
-    <p style="font-size:12px;color:#1e40af;margin-top:10px">Calculado automaticamente: <code style="font-family:monospace;background:#dbeafe;padding:2px 5px;border-radius:4px;font-size:11px">VI = √(22,5 × LPA × VPA)</code> e <code style="font-family:monospace;background:#dbeafe;padding:2px 5px;border-radius:4px;font-size:11px">MoS = (VI − Preço) / VI</code></p>
-    <p class="ref" style="margin-top:6px">Graham e Zweig (2003) | Palazzo et al. (2018)</p>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <button class="btn btn-primary" onclick="carregarDaCVM()">⬇ Carregar da CVM (automático)</button>
+    <button class="btn" onclick="loadDemo()">▶ Dados de demonstração (35 ativos)</button>
+    <span style="font-size:11px;color:#9ca3af">ou importe seu arquivo CSV/TXT acima</span>
   </div>
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
     <button class="btn btn-primary" onclick="loadDemo()">▶ Carregar dados de demonstração (35 ativos)</button>
