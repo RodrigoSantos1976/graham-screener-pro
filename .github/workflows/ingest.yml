@@ -46,7 +46,16 @@ jobs:
           if [ -z "$ANO" ]; then ANO=$(( $(date +%Y) - 1 )); fi
           echo "ANO=$ANO" >> "$GITHUB_ENV"
           echo "Usando dados do ano: $ANO"
-
+- name: Diagnostico FCA
+        run: |
+          python - <<'EOF'
+          import io, zipfile, requests, pandas as pd
+          url = "https://dados.cvm.gov.br/dados/CIA_ABERTA/DOC/FCA/DADOS/fca_cia_aberta_2025.zip"
+          zf = zipfile.ZipFile(io.BytesIO(requests.get(url, timeout=120).content))
+          alvo = [n for n in zf.namelist() if "valor_mobiliario" in n.lower()][0]
+          df = pd.read_csv(zf.open(alvo), sep=";", encoding="latin-1", dtype=str, nrows=2)
+          print("COLUNAS:", list(df.columns))
+          EOF
       - name: Gerar mapa de tickers (FCA)
         run: |
           python ingestao/mapa_ticker.py "$ANO"
