@@ -1,0 +1,76 @@
+# ============================================================================
+# .github/workflows/ingest.yml
+#
+# Roda a ingestão da CVM e publica data/fundamentos.json + data/mapa_ticker.json.
+# Cadência: semanal (fundamentos mudam por balanço). Também roda à mão.
+#
+# Não usa secrets: a CVM é pública. O token da brapi vive no Cloudflare Worker.
+# ============================================================================
+name: Ingestão CVM
+
+on:
+  schedule:
+    - cron: "0 9 * * 1"        # toda segunda, 09:00 UTC
+  workflow_dispatch:
+    inputs:
+      ano:
+        description: "Ano do DFP (vazio = ano anterior ao atual)"
+        required: false
+
+permissions:
+  contents: write              # necessário para o commit dos JSONs
+
+concurrency:
+  group: ingest-cvm
+  cancel-in-progress: false
+
+jobs:
+  ingestao:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Instalar dependências
+        run: pip install pandas requests
+
+      - name: Definir o ano
+        run: |
+          ANO="${{ github.event.inputs.ano }}"
+          if [ -z "$ANO" ]; then ANO=$(( $(date +%Y) - 1 )); fi
+          echo "ANO=$ANO" >> "$GITHUB_ENV"
+          echo "Usando dados do ano: $ANO"
+
+      - name: Gerar mapa de tickers (FCA)
+        run: |
+          python ingestao/mapa_ticker.py "$ANO"
+          mkdir -p data
+          cp -f mapa_ticker.json data/mapa_ticker.json
+          echo "--- mapa ---"
+          python -c "import json;d=json.load(open('mapa_ticker.json'));print(len(d),'empresas mapeadas')"
+
+      - name: Rodar ingestão
+        run: |
+          python ingestao/ingestao_cvm.py "$ANO"
+          mkdir -p data
+          mv -f fundamentos.json data/fundamentos.json
+          echo "--- resumo ---"
+          python -c "import json;d=json.load(open('data/fundamentos.json'));print(d['total'],'empresas,',d['elegiveis'],'elegíveis')"
+
+      - name: Commitar se houver mudança
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/fundamentos.json data/mapa_ticker.json
+          if git diff --staged --quiet; then
+            echo "Sem mudanças."
+          else
+            git commit -m "chore: atualiza fundamentos.json + mapa_ticker.json (ano ${ANO})"
+            git push
+          fi
