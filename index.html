@@ -224,6 +224,7 @@ footer{text-align:center;padding:20px;font-size:11px;color:#9ca3af;margin-top:20
       <option value="manual">Só seleção manual</option>
       <option value="fail">Só reprovados</option>
     </select>
+    <button class="btn" onclick="buscarMaisPrecos()" id="btn-mais-precos" title="Busca preço de até 20 empresas ainda sem cotação (maior VI primeiro)">💲 Buscar mais preços</button>
     <button class="btn btn-success" onclick="salvarCarteira()">💾 Salvar carteira no histórico</button>
     <button class="btn" onclick="limparManual()" id="btn-limpar-manual" style="display:none;border-color:#7c3aed;color:#7c3aed">✕ Limpar seleção manual</button>
     <span id="info-manual" style="font-size:11px;color:#7c3aed;font-weight:500"></span>
@@ -862,7 +863,7 @@ function renderTri(){
   });
   rows.sort((a,b)=>srt==='ticker'?a.t.localeCompare(b.t):srt==='pl'||srt==='pvp'?a[km[srt]]-b[km[srt]]:b[km[srt]||'mos']-a[km[srt]||'mos']);
   const chk=f=>`<span class="${f?'tick':'cross'}">${f?'✓':'✗'}</span>`;
-  const bar=mos=>{const w=Math.min(mos*100,100).toFixed(0);const c=mos>=0.5?'#15803d':mos>=0.33?'#65a30d':'#dc2626';return `<div class="mos-wrap"><span style="font-size:11px;min-width:34px">${(mos*100).toFixed(1)}%</span><div class="mos-bar"><div class="mos-fill" style="width:${w}%;background:${c}"></div></div></div>`;};
+  const bar=mos=>{if(isNaN(mos))return '<span style="color:#9ca3af;font-size:11px">—</span>';const w=Math.min(mos*100,100).toFixed(0);const c=mos>=0.5?'#15803d':mos>=0.33?'#65a30d':'#dc2626';return `<div class="mos-wrap"><span style="font-size:11px;min-width:34px">${(mos*100).toFixed(1)}%</span><div class="mos-bar"><div class="mos-fill" style="width:${w}%;background:${c}"></div></div></div>`;};
   // atualizar chk-all
   const allPass=DATA.filter(passes);
   const allChecked=allPass.length>0&&allPass.every(d=>selecaoManual.has(d.t));
@@ -878,12 +879,13 @@ function renderTri(){
     if(inManual) badge='<span class="badge" style="background:#7c3aed;color:#fff">✓ Manual</span>';
     else if(inSel) badge='<span class="badge sel">Na carteira</span>';
     else if(isPass) badge='<span class="badge pass">Aprovado</span>';
+    else if(isNaN(d.p)) badge='<span class="badge" style="background:#f1f5f9;color:#64748b">Sem preço</span>';
     else badge='<span class="badge fail">Reprovado</span>';
     return `<tr class="${inManual?'sel-row':inSel?'sel-row':''}">
       <td>${rb}</td>
       <td><input type="checkbox" ${inManual?'checked':''} ${!isPass?'disabled':''} onchange="toggleManual('${d.t}',this.checked)" style="cursor:${isPass?'pointer':'not-allowed'};accent-color:#7c3aed"></td>
       <td style="font-weight:600">${d.t}</td>
-      <td>R$ ${d.p.toFixed(2)}</td>
+      <td>${isNaN(d.p)?'<span style="color:#9ca3af">—</span>':'R$ '+d.p.toFixed(2)}</td>
       <td>${isNaN(d.dy)?'—':d.dy.toFixed(1)+'%'}</td>
       <td style="color:${d.pl>plMax?'#dc2626':'inherit'}">${isNaN(d.pl)?'—':d.pl.toFixed(2)}</td>
       <td style="color:${d.pvp>pvpMax?'#dc2626':'inherit'}">${isNaN(d.pvp)?'—':d.pvp.toFixed(2)}</td>
