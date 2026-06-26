@@ -762,7 +762,7 @@ function getSelected(){
     return DATA.filter(d=>selecaoManual.has(d.t)).sort((a,b)=>b.mos-a.mos);
   }
   // Senão usa seleção automática por tamanho
-  const approved=DATA.filter(passes).sort((a,b)=>b.mos-a.mos);
+  const approved=vis().filter(passes).sort((a,b)=>b.mos-a.mos);
   return cartSize>0?approved.slice(0,cartSize):approved;
 }
 
@@ -774,7 +774,7 @@ function toggleManual(ticker,checked){
 
 function toggleAll(checked){
   if(checked){
-    DATA.filter(passes).forEach(d=>selecaoManual.add(d.t));
+    vis().filter(passes).forEach(d=>selecaoManual.add(d.t));
   } else {
     selecaoManual.clear();
   }
@@ -812,7 +812,7 @@ function updateFilter(){
 function setSrt(col){window._srt=col;renderTri();}
 function renderAll(){updateSizeInfo();renderTri();renderCart();}
 function updateSizeInfo(){
-  const approved=DATA.filter(passes).length;
+  const approved=vis().filter(passes).length;
   const sel=getSelected().length;
   const el=document.getElementById('size-info');
   const elManual=document.getElementById('info-manual');
@@ -840,8 +840,8 @@ function renderTri(){
   if(!DATA.length){document.getElementById('tri-empty').style.display='block';return;}
   document.getElementById('tri-empty').style.display='none';
   const sel=getSelected(),selSet=new Set(sel.map(d=>d.t));
-  const approved=DATA.filter(passes);
-  document.getElementById('c-total').textContent=DATA.length;
+  const approved=vis().filter(passes);
+  document.getElementById('c-total').textContent=vis().length;
   document.getElementById('c-pass').textContent=approved.length;
   document.getElementById('c-sel').textContent=sel.length;
   if(sel.length){
@@ -853,7 +853,7 @@ function renderTri(){
   const fst=document.getElementById('fst').value;
   const srt=window._srt||'mos';
   const km={ticker:'t',mos:'mos',pl:'pl',dy:'dy',vi:'vi',pvp:'pvp',liq:'liq',preco:'p'};
-  let rows=DATA.filter(d=>{
+  let rows=vis().filter(d=>{
     if(q&&!d.t.toLowerCase().includes(q)) return false;
     if(fst==='pass'&&!passes(d)) return false;
     if(fst==='sel'&&!selSet.has(d.t)) return false;
@@ -865,7 +865,7 @@ function renderTri(){
   const chk=f=>`<span class="${f?'tick':'cross'}">${f?'✓':'✗'}</span>`;
   const bar=mos=>{if(isNaN(mos))return '<span style="color:#9ca3af;font-size:11px">—</span>';const w=Math.min(mos*100,100).toFixed(0);const c=mos>=0.5?'#15803d':mos>=0.33?'#65a30d':'#dc2626';return `<div class="mos-wrap"><span style="font-size:11px;min-width:34px">${(mos*100).toFixed(1)}%</span><div class="mos-bar"><div class="mos-fill" style="width:${w}%;background:${c}"></div></div></div>`;};
   // atualizar chk-all
-  const allPass=DATA.filter(passes);
+  const allPass=vis().filter(passes);
   const allChecked=allPass.length>0&&allPass.every(d=>selecaoManual.has(d.t));
   const chkAll=document.getElementById('chk-all');
   if(chkAll) chkAll.checked=allChecked;
