@@ -225,6 +225,7 @@ footer{text-align:center;padding:20px;font-size:11px;color:#9ca3af;margin-top:20
       <option value="fail">Só reprovados</option>
     </select>
     <button class="btn" onclick="buscarMaisPrecos()" id="btn-mais-precos" title="Busca preço de até 20 empresas ainda sem cotação (maior VI primeiro)">💲 Buscar mais preços</button>
+    <button class="btn" onclick="buscarTodosPrecos()" id="btn-todos-precos" title="Busca em loop automático até precificar tudo que tem cotação (respeita o limite da brapi). Clique de novo para parar.">⏬ Buscar todos (auto)</button>
     <button class="btn btn-success" onclick="salvarCarteira()">💾 Salvar carteira no histórico</button>
     <button class="btn" onclick="limparManual()" id="btn-limpar-manual" style="display:none;border-color:#7c3aed;color:#7c3aed">✕ Limpar seleção manual</button>
     <span id="info-manual" style="font-size:11px;color:#7c3aed;font-weight:500"></span>
@@ -1320,8 +1321,8 @@ function showTab(id,btn){
 // Inicializar acompanhamento
 renderAcompanhamento();
 </script>
-  <script src="lib/carteira.js?v=2"></script>
-  <script src="lib/carteira_retornos.js?v=2"></script>
-  <script src="lib/triagem_loader.js?v=2"></script>
+  <script src="lib/carteira.js?v=3"></script>
+  <script src="lib/carteira_retornos.js?v=3"></script>
+  <script src="lib/triagem_loader.js?v=3"></script>
 </body>
 </html>
